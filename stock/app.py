@@ -22,19 +22,32 @@ atexit.register(close_db_connection)
 
 @app.post('/item/create/<price>')
 def create_item(price: int):
-    pass
+    item_id = db.incr('item_id')
+    item = {'item_id': item_id, 'price': price, 'stock': 0}
+    db.hset(f'item:{item_id}', mapping=item)
+
+    return item, 201
 
 
 @app.get('/find/<item_id>')
 def find_item(item_id: str):
-    pass
+    price = int(db.hget(f'item:{item_id}', 'price'))
+    stock = int(db.hget(f'item:{item_id}', 'stock'))
+
+    return {'item_id': item_id, 'price': price, 'stock': stock}, 200
 
 
 @app.post('/add/<item_id>/<amount>')
 def add_stock(item_id: str, amount: int):
-    pass
+    db.hincrby(f'item:{item_id}', 'stock', amount)
+    return "Success", 200
 
 
 @app.post('/subtract/<item_id>/<amount>')
 def remove_stock(item_id: str, amount: int):
-    pass
+    stock = db.hget(f'item:{item_id}', 'stock')
+    if int(stock) < int(amount):
+        return "Not enough stock", 400
+    else:
+        db.hincrby(f'item:{item_id}', 'stock', -int(amount))
+        return "Success", 200
