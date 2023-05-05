@@ -31,15 +31,16 @@ def create_item(price: int):
 
 @app.get('/find/<item_id>')
 def find_item(item_id: str):
-    price = int(db.hget(f'item:{item_id}', 'price'))
-    stock = int(db.hget(f'item:{item_id}', 'stock'))
+    item = db.hmget(f'item:{item_id}', 'price', 'stock')
+    if None in item:
+        return None, 404
 
-    return {'item_id': item_id, 'price': price, 'stock': stock}, 200
+    return {'item_id': item_id, 'price': int(item[0]), 'stock': int(item[1])}, 200
 
 
 @app.post('/add/<item_id>/<amount>')
 def add_stock(item_id: str, amount: int):
-    db.hincrby(f'item:{item_id}', 'stock', amount)
+    db.hincrby(f'item:{item_id}', 'stock', int(amount))
     return "Success", 200
 
 
