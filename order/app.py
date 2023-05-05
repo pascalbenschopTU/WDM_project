@@ -48,7 +48,7 @@ def create_order(user_id):
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
     success: bool = bool(db.delete(f'order:{order_id}'))
-    
+
     if success:
         return f'Succesfully removed order with id {order_id}', 200
 
@@ -72,7 +72,7 @@ def add_item(order_id, item_id):
     items[item_id] = items.get(item_id, 0) + 1
 
     store_order(order)
-    return "Added the item to the order", 200
+    return f'Added item {item_id} to the order', 200
 
 
 
@@ -98,7 +98,7 @@ def remove_item(order_id, item_id):
         items.pop(item_id)
 
     store_order(order)
-    return "Removed item from the order", 200
+    return f'Removed item {item_id} from the order', 200
 
 
 @app.get('/find/<order_id>')

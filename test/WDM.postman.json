@@ -1,0 +1,192 @@
+{
+	"info": {
+		"_postman_id": "59adfe2c-9f0b-4b82-a9d6-9882fd0a870e",
+		"name": "WDM",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Order",
+			"item": [
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have an order id\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).to.be.a('number');\r",
+									"});\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"pm.collectionVariables.set(\"order_id\", jsonData.order_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/create/{{user_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"create",
+								"{{user_id}}"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(Object.keys(responseJson.items).length).eq(0, \"The are no items in the order\");\r",
+									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
+									"}); "
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/find/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"find",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/addItem/21/hocuspocus",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"addItem",
+								"21",
+								"hocuspocus"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove item",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/removeItem/21/test",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"removeItem",
+								"21",
+								"test"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Order",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/remove/21",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"remove",
+								"21"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "ordersRoot",
+			"value": "http://127.0.0.1:8000/orders/",
+			"type": "default"
+		},
+		{
+			"key": "order_id",
+			"value": "0",
+			"type": "default"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"type": "default"
+		}
+	]
+}
