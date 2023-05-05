@@ -19,8 +19,10 @@ db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
 def close_db_connection():
     db.close()
 
+atexit.register(close_db_connection)
 
 def get_order(order_id: int) -> Order:
+    
     byte_result = db.hmget(f'order:{order_id}', 'user_id', 'items', 'paid')
     
     # Check if we found an order with the given id
@@ -34,7 +36,6 @@ def get_order(order_id: int) -> Order:
 def store_order(order: Order):
     db.hset(f'order:{order.order_id}', mapping=order.to_redis_input())
 
-atexit.register(close_db_connection)
 
 
 @app.post('/create/<user_id>')
@@ -47,6 +48,7 @@ def create_order(user_id):
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
     success: bool = bool(db.delete(f'order:{order_id}'))
+    
     if success:
         return f'Succesfully removed order with id {order_id}', 200
 
@@ -56,13 +58,17 @@ def remove_order(order_id):
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
+
     # Find the order
     order = get_order(order_id)
 
+    # Case where the other is not found
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
     
     items = order.items
+
+    # Add the item to the order or increment its quantity and store the result
     items[item_id] = items.get(item_id, 0) + 1
 
     store_order(order)
@@ -75,15 +81,19 @@ def remove_item(order_id, item_id):
     # Find the order
     order = get_order(order_id)
 
+    # Case where the other is not found
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
     
     items = order.items
 
+    # Check if the order contains the item to remove
     if not item_id in items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
+    # If the other contains the item more than once remove 1
     elif items[item_id] > 1:
         items[item_id] -= 1
+    # Otherwise remove the item completely
     else:
         items.pop(item_id)
 
@@ -93,6 +103,7 @@ def remove_item(order_id, item_id):
 
 @app.get('/find/<order_id>')
 def find_order(order_id):
+
     order = get_order(order_id)
 
     # Check if we found an order with the given id
