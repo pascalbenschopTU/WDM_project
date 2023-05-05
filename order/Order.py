@@ -15,12 +15,12 @@ class Order:
 
     def to_redis_input(self) -> dict:
         resultDict = self.__dict__
-        resultDict['paid'] = 1 if resultDict['paid'] else 0
+        resultDict['paid'] = int(resultDict['paid'])
         resultDict['items'] = json.dumps(resultDict['items'])
         return resultDict
     
     def bytes_to_order(order_id: int, order_bytes: list[bytes]):
         user_id = int(order_bytes[0])
         items = json.loads(order_bytes[1])
-        paid = True if int(order_bytes[2]) == 1 else False
+        paid = bool(int(order_bytes[2]))
         return Order(order_id, user_id, items, paid)
