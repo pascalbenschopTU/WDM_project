@@ -42,3 +42,9 @@ services:
   payment-db:
     image: redis:latest
     command: redis-server --requirepass redis --maxmemory 512mb
+
+  rabbit-mq:
+    image: rabbitmq:3
+    hostname: my-rabbit
+    container_name: some-rabbit1
+    restart: always
