@@ -3,7 +3,7 @@ import atexit
 
 from flask import Flask
 import redis
-
+import pika
 
 app = Flask("payment-service")
 
@@ -48,3 +48,30 @@ def cancel_payment(user_id: str, order_id: str):
 @app.post('/status/<user_id>/<order_id>')
 def payment_status(user_id: str, order_id: str):
     pass
+
+## define channels
+connection = pika.BlockingConnection(
+    pika.ConnectionParameters(host='localhost'))
+channel = connection.channel()
+## Forwards to stock.
+channel.queue_declare(queue=os.environ['payment_order'], durable=True)
+## Recieves ok from payment if withdrawl was ok
+channel.queue_declare(queue=os.environ['stock_payment'], durable=True)
+## recieves messages from stock if not in order
+
+def stock_callback(ch, method, properties, body):
+    params = body.decode().split(",")
+    status = remove_credit(params[1], params[0], params[2])
+    message = f"{params[0]},True,payment"
+    if status > 399: ## if something went wrong, we change the message
+        message = f"{params[0]},False,payment"
+    # we publish it to the queue the order service is listening on.
+    channel.basic_publish(
+        exchange='',
+        routing_key=params[0],
+        body=message,
+        properties=pika.BasicProperties(
+        delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
+    ))
+
+channel.basic_consume(queue=['stock_payment'], on_message_callback=stock_callback)

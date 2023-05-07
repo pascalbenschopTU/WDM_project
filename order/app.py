@@ -64,10 +64,8 @@ channel.queue_declare(queue=os.environ['stock_order'], durable=True)
 
 def generate_stock_message(action, order):
     message = f"{order.order_id},{order.user_id},{action},"
-    item_ids = ""
     for item in order.items.values():
-        item_ids += item.item_id
-    message += item_ids
+        message += item.item_id
     return message
 
 # [0] = orderId, [1] = successfull, [3] = serivce
@@ -93,7 +91,6 @@ def order_status_callback(response):
         ## Delete queue as we will not use it anymore
         channel.queue_delete(queue=params[0])
         response[0] = params[1] == "True"
-        # return params[1] == "True"
 
 
 def initiate_order(order_id):
