@@ -7,6 +7,7 @@ import requests
 
 
 app = Flask("payment-service")
+gateway_url = os.environ['GATEWAY_URL']
 
 db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
                               port=int(os.environ['REDIS_PORT']),
@@ -33,7 +34,7 @@ def create_user():
 def find_user(user_id: str):
     user = db.hmget(f'item:{user_id}', 'credit')
     if None in user:
-        return None, 404
+        return {"Error": "User not found"}, 404
 
     return {'user_id': user_id, 'credit': int(user[0])}, 200
 
@@ -48,7 +49,7 @@ def add_credit(user_id: str, amount: int):
 def remove_credit(user_id: str, order_id: str, amount: int):
     credit = db.hget(f'item:{user_id}', 'credit')
     if int(credit) < int(amount):
-        return "Not enough credit", 400
+        return {"Error:", "Not enough credit"}, 400
     p = db.pipeline(transaction=True)
     p.hincrby(f'user:{user_id}', 'credit', -int(amount))
     p.hset(f'order:{order_id}', 'status', 'paid')
@@ -58,17 +59,29 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
 @app.post('/cancel/<user_id>/<order_id>')
 def cancel_payment(user_id: str, order_id: str):
-    order = requests.get(f"/orders/find/{order_id}")
-    if order.status != 200:
-        return "Order not found", 404
-    order = order.json()
-    order_status = order['status']
-    requests.delete(f"/orders/remove/{order_id}")
-    if order_status == 'paid':
-        requests.post(f"/payment/add_funds/{user_id}/{order['total_cost']}")
+    user = db.hget(f'user:{user_id}', 'paid_orders')
+    if user:
+        response = requests.get(f"{gateway_url}/orders/find/{order_id}")
+        if response.status_code != 200:
+            return {"Error": "Order not found"}, 404
+        order = response.json()
+        requests.delete(f"{gateway_url}/orders/remove/{order_id}")
+        amount = order["total_cost"]
+
+        db.hincrby(f'user:{user_id}', 'credit', amount)
+        db.hdel(f'user:{user_id}', 'paid_orders')
+        for item_id in order["items"]:
+            requests.post(f"{gateway_url}/stock/add/{item_id}/1")
+
+        return {"Success": True}, 200
+    else:
+        return {"Error": "Payment not found"}, 404
 
 
 @app.post('/status/<user_id>/<order_id>')
 def payment_status(user_id: str, order_id: str):
-    order = requests.get(f"/orders/find/{order_id}").json()
-    return {'paid': order['paid']}, 200
+    user = db.hget(f'user:{user_id}', 'paid_orders')
+    if user:
+        order = requests.get(f"{gateway_url}/orders/find/{order_id}").json()
+        return {'paid': order['paid']}, 200
+    return {'Error': 'User not found'}, 404

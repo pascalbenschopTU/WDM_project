@@ -26,10 +26,12 @@ class TestMicroservices(unittest.TestCase):
 
         # Test /stock/subtract/<item_id>/<number>
         over_subtract_stock_response = tu.subtract_stock(item_id, 200)
-        self.assertTrue(tu.status_code_is_failure(int(over_subtract_stock_response)))
+        self.assertTrue(tu.status_code_is_failure(
+            int(over_subtract_stock_response)))
 
         subtract_stock_response = tu.subtract_stock(item_id, 15)
-        self.assertTrue(tu.status_code_is_success(int(subtract_stock_response)))
+        self.assertTrue(tu.status_code_is_success(
+            int(subtract_stock_response)))
 
         stock_after_subtract: int = tu.find_item(item_id)['stock']
         self.assertEqual(stock_after_subtract, 35)
@@ -73,6 +75,13 @@ class TestMicroservices(unittest.TestCase):
 
         credit_after_payment: int = tu.find_user(user_id)['credit']
         self.assertEqual(credit_after_payment, 5)
+
+        stock_after_subtract: int = tu.find_item(item_id)['stock']
+        self.assertEqual(stock_after_subtract, 47)
+
+        tu.cancel_payment(user_id, order_id)
+        self.assertEqual(tu.find_user(user_id)['credit'], 15)
+        self.assertEqual(tu.find_item(item_id)['stock'], 50)
 
     def test_order(self):
         # Test /payment/pay/<user_id>/<order_id>
