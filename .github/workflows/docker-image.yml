@@ -15,4 +15,5 @@ jobs:
     - name: Run docker and tests
       run: | 
         docker compose up -d
+        sleep 5
         python test/test_microservices.py
