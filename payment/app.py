@@ -1,9 +1,8 @@
 import os
 import atexit
-
 from flask import Flask
 import redis
-import json
+
 app = Flask('payment-service')
 gateway_url = os.environ['GATEWAY_URL']
 
@@ -59,8 +58,8 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
     p = db.pipeline(transaction=True)
     p.hincrby(f'user:{user_id}', 'credit', -int(amount))
-    p.hset(f'paid_orders:{order_id}', 'amount_paid', amount)
-    p.hset(f'paid_orders:{order_id}', 'user_id', user_id)
+    p.hmset(f'paid_orders:{order_id}', {
+            'amount_paid': amount, 'user_id': user_id})
     p.execute()
     return 'Success', 200
 
