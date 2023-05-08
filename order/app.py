@@ -66,11 +66,8 @@ def add_item(order_id, item_id):
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
     
-    items = order.items
-
-    # Add the item to the order or increment its quantity and store the result
-    items[item_id] = items.get(item_id, 0) + 1
-
+    items: list[str] = order.items
+    items.append(item_id)
     store_order(order)
     return f'Added item {item_id} to the order', 200
 
@@ -85,17 +82,13 @@ def remove_item(order_id, item_id):
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
     
-    items = order.items
+    items: list[str] = order.items
 
     # Check if the order contains the item to remove
     if not item_id in items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
-    # If the other contains the item more than once remove 1
-    elif items[item_id] > 1:
-        items[item_id] -= 1
-    # Otherwise remove the item completely
     else:
-        items.pop(item_id)
+        items.remove(item_id)
 
     store_order(order)
     return f'Removed item {item_id} from the order', 200
