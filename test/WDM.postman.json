@@ -1,6 +1,6 @@
 {
 	"info": {
-		"_postman_id": "59adfe2c-9f0b-4b82-a9d6-9882fd0a870e",
+		"_postman_id": "56a5d793-33e7-4c31-8e3d-a14f2b440a18",
 		"name": "WDM",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
@@ -69,7 +69,7 @@
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
 									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
-									"    pm.expect(Object.keys(responseJson.items).length).eq(0, \"The are no items in the order\");\r",
+									"    pm.expect(responseJson.items.length).eq(0, \"There are no items in the order\");\r",
 									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
 									"}); "
 								],
@@ -95,18 +95,72 @@
 				},
 				{
 					"name": "Add Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{ordersRoot}}/addItem/21/hocuspocus",
+							"raw": "{{ordersRoot}}/addItem/{{order_id}}/{{item_id1}}",
 							"host": [
 								"{{ordersRoot}}"
 							],
 							"path": [
 								"addItem",
-								"21",
-								"hocuspocus"
+								"{{order_id}}",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Single Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.items.length).eq(1, \"There is one item in the order\");\r",
+									"    pm.expect(responseJson.items).contains(pm.variables.get(\"item_id1\"), \"The item with id1 should be in the order\");\r",
+									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
+									"}); "
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/find/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"find",
+								"{{order_id}}"
 							]
 						}
 					},
@@ -114,18 +168,212 @@
 				},
 				{
 					"name": "Remove item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{ordersRoot}}/removeItem/21/test",
+							"raw": "{{ordersRoot}}/removeItem/{{order_id}}/{{item_id1}}",
 							"host": [
 								"{{ordersRoot}}"
 							],
 							"path": [
 								"removeItem",
-								"21",
-								"test"
+								"{{order_id}}",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/addItem/{{order_id}}/{{item_id1}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"addItem",
+								"{{order_id}}",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/addItem/{{order_id}}/{{item_id2}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"addItem",
+								"{{order_id}}",
+								"{{item_id2}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Two Items",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.items.length).eq(2, \"There should be two items in the order\");\r",
+									"    pm.expect(responseJson.items).contains(pm.variables.get(\"item_id1\"), \"The item with id1 should be in the order\");\r",
+									"    pm.expect(responseJson.items).contains(pm.variables.get(\"item_id2\"), \"The item with id2 should be in the order\");\r",
+									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
+									"}); "
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/find/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"find",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Remove Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/removeItem/{{order_id}}/{{item_id1}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"removeItem",
+								"{{order_id}}",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order Single Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.items.length).eq(1, \"There should be two items in the order\");\r",
+									"    pm.expect(responseJson.items[0]).eq(pm.variables.get(\"item_id2\"), \"The item with id2 should be in the order\");\r",
+									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
+									"}); "
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/find/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"find",
+								"{{order_id}}"
 							]
 						}
 					},
@@ -133,17 +381,31 @@
 				},
 				{
 					"name": "Remove Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
 					"request": {
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{ordersRoot}}/remove/21",
+							"raw": "{{ordersRoot}}/remove/{{order_id}}",
 							"host": [
 								"{{ordersRoot}}"
 							],
 							"path": [
 								"remove",
-								"21"
+								"{{order_id}}"
 							]
 						}
 					},
@@ -186,6 +448,16 @@
 		{
 			"key": "user_id",
 			"value": "1",
+			"type": "default"
+		},
+		{
+			"key": "item_id1",
+			"value": "TestOne",
+			"type": "default"
+		},
+		{
+			"key": "item_id2",
+			"value": "TestTwo",
 			"type": "default"
 		}
 	]
