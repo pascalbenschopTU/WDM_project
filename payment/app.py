@@ -3,6 +3,7 @@ import atexit
 
 from flask import Flask
 import redis
+import requests
 
 
 app = Flask("payment-service")
@@ -22,29 +23,52 @@ atexit.register(close_db_connection)
 
 @app.post('/create_user')
 def create_user():
-    pass
+    user_id = db.incr('user_id')
+    user = {'user_id': user_id, 'credit': 0}
+    db.hset(f'user:{user_id}', mapping=user)
+    return user, 200
 
 
 @app.get('/find_user/<user_id>')
 def find_user(user_id: str):
-    pass
+    user = db.hmget(f'item:{user_id}', 'credit')
+    if None in user:
+        return None, 404
+
+    return {'user_id': user_id, 'credit': int(user[0])}, 200
 
 
 @app.post('/add_funds/<user_id>/<amount>')
 def add_credit(user_id: str, amount: int):
-    pass
+    db.hincrby(f'item:{user_id}', 'credit', int(amount))
+    return {'done': True}, 200
 
 
 @app.post('/pay/<user_id>/<order_id>/<amount>')
 def remove_credit(user_id: str, order_id: str, amount: int):
-    pass
+    credit = db.hget(f'item:{user_id}', 'credit')
+    if int(credit) < int(amount):
+        return "Not enough credit", 400
+    p = db.pipeline(transaction=True)
+    p.hincrby(f'user:{user_id}', 'credit', -int(amount))
+    p.hset(f'order:{order_id}', 'status', 'paid')
+    p.execute()
+    return "Success", 200
 
 
 @app.post('/cancel/<user_id>/<order_id>')
 def cancel_payment(user_id: str, order_id: str):
-    pass
+    order = requests.get(f"/orders/find/{order_id}")
+    if order.status != 200:
+        return "Order not found", 404
+    order = order.json()
+    order_status = order['status']
+    requests.delete(f"/orders/remove/{order_id}")
+    if order_status == 'paid':
+        requests.post(f"/payment/add_funds/{user_id}/{order['total_cost']}")
 
 
 @app.post('/status/<user_id>/<order_id>')
 def payment_status(user_id: str, order_id: str):
-    pass
+    order = requests.get(f"/orders/find/{order_id}").json()
+    return {'paid': order['paid']}, 200
