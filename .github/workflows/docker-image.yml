@@ -5,11 +5,8 @@ on:
     branches: '**'
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Run docker and tests
@@ -20,21 +17,20 @@ jobs:
 
   postman:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         node-version: [14.x, 16.x, 18.x, 20.x]
-
     steps:
     - uses: actions/checkout@v3
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-  - uses: actions/checkout@v3
-  - name: Run docker postman tests
-    run: | 
-      npm install -g newman
-      docker compose up -d
-      sleep 5
-      newman run test/WDM.postman.json
+        
+    - uses: actions/checkout@v3
+    - name: Run docker postman tests
+      run: | 
+        npm install -g newman
+        docker compose up -d
+        sleep 5
+        newman run test/WDM.postman.json
