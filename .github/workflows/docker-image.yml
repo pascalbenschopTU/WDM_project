@@ -13,4 +13,6 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Run docker and tests
-      run: docker compose up -d & python test/test_microservices.py
+      run: | 
+        docker compose up -d
+        python test/test_microservices.py
