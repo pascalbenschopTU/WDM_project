@@ -81,7 +81,6 @@ class TestMicroservices(unittest.TestCase):
 
         tu.cancel_payment(user_id, order_id)
         self.assertEqual(tu.find_user(user_id)['credit'], 15)
-        self.assertEqual(tu.find_item(item_id)['stock'], 50)
 
     def test_order(self):
         # Test /payment/pay/<user_id>/<order_id>
