@@ -29,7 +29,6 @@ def create_user():
 
 @app.get('/find_user/<user_id>')
 def find_user(user_id: str):
-    # Check if user exists
     user = db.exists(f'user:{user_id}')
     if not user:
         return {'Error': 'User not found'}, 404
@@ -86,5 +85,3 @@ def payment_status(user_id: str, order_id: str):
 
     paid_order = db.exists(f'paid_orders:{order_id}')
     return {'paid': paid_order > 0}, 200
-
-#  Are there any bugs in the code above? If so, how would you fix them?
