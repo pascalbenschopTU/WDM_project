@@ -154,7 +154,7 @@
 					"response": []
 				},
 				{
-					"name": "Get Item",
+					"name": "Get Item1",
 					"event": [
 						{
 							"listen": "test",
@@ -167,8 +167,47 @@
 									"pm.test(\"The response should have the correct values\", function () {\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.item_id).eq(pm.collectionVariables.get(\"item_id1\"), \"The item id should be correct\");\r",
-									"    pm.expect(responseJson.price).to.eq(3);\r",
-									"    pm.expect(responseJson.stock).to.eq(5);\r",
+									"    pm.expect(responseJson.price).to.eq(parseInt(pm.collectionVariables.get(\"item_id1_price\")));\r",
+									"    pm.expect(responseJson.stock).to.eq(parseInt(pm.collectionVariables.get(\"item_id1_quantity\")));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{stockRoot}}/find/{{item_id1}}",
+							"host": [
+								"{{stockRoot}}"
+							],
+							"path": [
+								"find",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have the correct values\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.item_id).eq(pm.collectionVariables.get(\"item_id2\"), \"The item id should be correct\");\r",
+									"    pm.expect(responseJson.price).to.eq(parseInt(pm.collectionVariables.get(\"item_id2_price\")));\r",
+									"    pm.expect(responseJson.stock).to.eq(parseInt(pm.collectionVariables.get(\"item_id2_quantity\")));\r",
 									"});\r",
 									""
 								],
