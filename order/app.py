@@ -38,8 +38,6 @@ def get_order(order_id: int) -> Order:
 def store_order(order: Order):
     db.hset(f'order:{order.order_id}', mapping=order.to_redis_input())
 
-
-
 @app.post('/create/<user_id>')
 def create_order(user_id):
     order_id = db.incr('order_id')
@@ -55,8 +53,6 @@ def remove_order(order_id):
         return f'Succesfully removed order with id {order_id}', 200
 
     return f'Could not remove order with id {order_id}', 200
-
-
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
@@ -107,18 +103,31 @@ def find_order(order_id):
 
     return order.__dict__, 200
 
-
-
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
     order = get_order(order_id)
+    price = 400
+    payment_response = requests.post(f'{payment_url}/pay/{order.user_id}/{order_id}/{price}')
+    if payment_response > 299:
+        return "Not enough money", 400
+    order.paid = True
     itemIds = [item.id for item in order.items]
     stock_response = requests.post(f'{stock_url}/subract_bulk/{itemIds}')
     if stock_response.status_code > 299:
+        requests.post(f'{payment_url}/add_funds/{order.user_id}/{order_id}/{price}')
         return "Not enough stock", 400
-    price = 400
-    payment_response = requests.post(f'{payment_url}/{order.user_id}/{order_id}/{price}')
-    if payment_response > 299:
-        requests.post(f'{stock_url}/add_bulk/{itemIds}')
-        return "Not enough money", 400
+    ## update order to set paid true
+    order.paid = True
+    store_order(order)
+    
+    return 200
+
+@app.post('/cancelled/<order_id>')
+def cancel(order_id):
+    order = find_order(order_id)
+    if order is None:
+        return f'Could not find an order with order_id {order_id}', 400
+    order.paid = False
+    store_order(order)
+
     return 200

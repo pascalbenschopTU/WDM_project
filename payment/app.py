@@ -59,7 +59,9 @@ def remove_credit(user_id: str, order_id: str, amount: int):
     p.hincrby(f'user:{user_id}', 'credit', -int(amount))
     p.hmset(f'paid_orders:{order_id}', {
             'amount_paid': amount, 'user_id': user_id})
-    p.execute()
+    pipe_response = p.execute()
+    if not pipe_response[1]:
+        return 'Failure', 400
     return 'Success', 200
 
 
