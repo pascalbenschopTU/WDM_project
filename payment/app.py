@@ -29,7 +29,7 @@ def create_user():
 
 @app.get('/find_user/<user_id>')
 def find_user(user_id: str):
-    user = db.exists(f'user:{user_id}')
+    user = db.hgetall(f'user:{user_id}')
     if not user:
         return {'Error': 'User not found'}, 404
     return user, 200
