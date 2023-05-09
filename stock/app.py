@@ -35,7 +35,7 @@ def find_item(item_id: str):
     if None in item:
         return None, 404
 
-    return {'item_id': item_id, 'price': int(item[0]), 'stock': int(item[1])}, 200
+    return {'item_id': int(item_id), 'price': int(item[0]), 'stock': int(item[1])}, 200
 
 
 @app.post('/add/<item_id>/<amount>')

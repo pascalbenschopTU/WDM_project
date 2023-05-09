@@ -1,11 +1,15 @@
 import os
 import atexit
+import sys
 
 from flask import Flask
 import redis
+import requests
 
 from Order import Order
 
+STOCK_URL = "http://stock-service:5000"
+PAYMENT_URL = "http://payment-service:5000"
 gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
@@ -109,4 +113,40 @@ def find_order(order_id):
 
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
-    pass
+    order = get_order(order_id)
+
+    # Check if we found an order with the given id
+    if order is None:
+        return f'Could not find an order with id {order_id}', 400
+    
+    totalOrderPrice = 0
+    print(gateway_url)
+    for item in order.items:
+        response: requests.Response = requests.get(f"{STOCK_URL}/find/{item}")
+        totalOrderPrice += response.json()['price']
+    
+    
+    reserved_items = []
+
+    try:
+        for item in order.items:
+            order_response = requests.post(f"{STOCK_URL}/subtract/{item}/1")
+            if not (200 <= order_response.status_code < 300):
+                raise Exception("Not enough stock") 
+            reserved_items.append(item)
+
+
+        payment_response = requests.post(f"{PAYMENT_URL}/pay/{order.user_id}/{order_id}/{totalOrderPrice}")
+
+        if not (200 <= payment_response.status_code < 300):
+            raise Exception("Not enough credit") 
+        order.paid = True
+        store_order(order)
+    except:
+        # Roll back the reserved items
+        for item in reserved_items:
+            requests.post(f"{STOCK_URL}/add/{item}/1")
+        return "Checkout failed", 400
+    
+    return "Checkout succeeded", 200
+

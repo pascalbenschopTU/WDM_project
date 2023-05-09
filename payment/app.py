@@ -6,6 +6,7 @@ import redis
 app = Flask('payment-service')
 gateway_url = os.environ['GATEWAY_URL']
 
+ORDER_URL = "http://order-service:5000"
 db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
                               port=int(os.environ['REDIS_PORT']),
                               password=os.environ['REDIS_PASSWORD'],
@@ -24,15 +25,15 @@ def create_user():
     user_id = db.incr('user_id')
     user = {'user_id': user_id, 'credit': 0}
     db.hmset(f'user:{user_id}', user)
-    return user, 200
+    return {"user_id": user_id}, 200
 
 
 @app.get('/find_user/<user_id>')
 def find_user(user_id: str):
-    user = db.exists(f'user:{user_id}')
-    if not user:
+    user = db.hmget(f'user:{user_id}', 'credit')
+    if None in user:
         return {'Error': 'User not found'}, 404
-    return user, 200
+    return {"user_id": int(user_id), "credit": int(user[0])}, 200
 
 
 @app.post('/add_funds/<user_id>/<amount>')
@@ -49,11 +50,11 @@ def add_credit(user_id: str, amount: int):
 def remove_credit(user_id: str, order_id: str, amount: int):
     credit = db.hget(f'user:{user_id}', 'credit')
     if int(credit) < int(amount):
-        return {'Error:', 'Not enough credit'}, 400
+        return 'Not enough credit', 400
     order = db.exists(f'paid_orders:{order_id}')
 
     if order:
-        return 'Order already paid', 400
+        return 'Order already paid', 401
 
     p = db.pipeline(transaction=True)
     p.hincrby(f'user:{user_id}', 'credit', -int(amount))
