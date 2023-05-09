@@ -26,7 +26,7 @@ atexit.register(close_db_connection)
 
 def get_order(order_id: int) -> Order:
     
-    byte_result = db.hmget(f'order:{order_id}', 'user_id', 'items', 'paid')
+    byte_result = db.hmget(f'order:{order_id}', 'user_id', 'items', 'total_price', 'paid')
     
     # Check if we found an order with the given id
     if None in byte_result:
@@ -68,9 +68,16 @@ def add_item(order_id, item_id):
     # Case where the other is not found
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
+
+    # Find the item
+    response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
+    if response.status_code == 404:
+        return f'Could not find {item_id}', 404
+
+    item_price = response.json()['price']
     
-    items: list[str] = order.items
-    items.append(item_id)
+    order.items.append(item_id)
+    order.total_price += item_price
     store_order(order)
     return f'Added item {item_id} to the order', 200
 
@@ -78,6 +85,14 @@ def add_item(order_id, item_id):
 
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
+    
+    # Find the item
+    response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
+
+    if response.status_code == 404:
+        return f'Could not find {item_id}', 404
+
+    
     # Find the order
     order = get_order(order_id)
 
@@ -85,12 +100,14 @@ def remove_item(order_id, item_id):
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
     
+    item_price = response.json()['price']
     items: list[str] = order.items
 
     # Check if the order contains the item to remove
     if not item_id in items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
     else:
+        order.total_price -= item_price
         items.remove(item_id)
 
     store_order(order)
@@ -118,13 +135,6 @@ def checkout(order_id):
     if order is None:
         return f'Could not find an order with id {order_id}', 400
     
-    totalOrderPrice = 0
-    print(gateway_url)
-    for item in order.items:
-        response: requests.Response = requests.get(f"{STOCK_URL}/find/{item}")
-        totalOrderPrice += response.json()['price']
-    
-    
     reserved_items = []
 
     try:
@@ -135,7 +145,7 @@ def checkout(order_id):
             reserved_items.append(item)
 
 
-        payment_response = requests.post(f"{PAYMENT_URL}/pay/{order.user_id}/{order_id}/{totalOrderPrice}")
+        payment_response = requests.post(f"{PAYMENT_URL}/pay/{order.user_id}/{order_id}/{order.total_price}")
 
         if not (200 <= payment_response.status_code < 300):
             raise Exception("Not enough credit") 
