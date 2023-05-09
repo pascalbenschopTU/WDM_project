@@ -41,6 +41,10 @@ def add_credit_to_user(user_id: str, amount: float) -> int:
     return requests.post(f"{PAYMENT_URL}/payment/add_funds/{user_id}/{amount}").status_code
 
 
+def cancel_payment(user_id: str, order_id: str) -> int:
+    return requests.post(f"{PAYMENT_URL}/payment/cancel/{user_id}/{order_id}").status_code
+
+
 ########################################################################################################################
 #   ORDER MICROSERVICE FUNCTIONS
 ########################################################################################################################
