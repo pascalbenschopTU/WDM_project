@@ -6,7 +6,6 @@ import redis
 app = Flask('payment-service')
 gateway_url = os.environ['GATEWAY_URL']
 
-ORDER_URL = "http://order-service:5000"
 db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
                               port=int(os.environ['REDIS_PORT']),
                               password=os.environ['REDIS_PASSWORD'],
