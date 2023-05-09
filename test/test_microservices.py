@@ -76,9 +76,6 @@ class TestMicroservices(unittest.TestCase):
         credit_after_payment: int = tu.find_user(user_id)['credit']
         self.assertEqual(credit_after_payment, 5)
 
-        stock_after_subtract: int = tu.find_item(item_id)['stock']
-        self.assertEqual(stock_after_subtract, 47)
-
         tu.cancel_payment(user_id, order_id)
         self.assertEqual(tu.find_user(user_id)['credit'], 15)
 

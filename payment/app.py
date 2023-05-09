@@ -66,11 +66,11 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
 @app.post('/cancel/<user_id>/<order_id>')
 def cancel_payment(user_id: str, order_id: str):
-    order = db.hgetall(f'paid_orders:{order_id}')
-    if not order:
+    order = db.hmget(f'paid_orders:{order_id}', 'amount_paid')
+    if None in order:
         return {'Error': 'Order not found'}, 404
 
-    amount = order['amount_paid']
+    amount = order[0]
     p = db.pipeline(transaction=True)
     p.hincrby(f'user:{user_id}', 'credit', amount)
     p.delete(f'paid_orders:{order_id}')
