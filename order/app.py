@@ -1,6 +1,5 @@
 import os
 import atexit
-import sys
 
 from flask import Flask
 import redis
