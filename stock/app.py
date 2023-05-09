@@ -52,3 +52,18 @@ def remove_stock(item_id: str, amount: int):
     else:
         db.hincrby(f'item:{item_id}', 'stock', -int(amount))
         return "Success", 200
+
+@app.post('/subtract_bulk/<item_ids>')
+def remove_stock_bulk(item_ids: list[str]):
+    for i in range(0, len(item_ids)):
+        response = remove_stock(item_ids[0])
+        if (response > 299):
+            for j in range(0, i):
+                add_stock(item_ids[j])
+            return 400
+    return 200
+
+@app.post('/add_bulk/<item_ids>')
+def remove_stock_bulk(item_ids: list[str]):
+    [add_stock(item_id) for item_id in item_ids]
+    return 200
