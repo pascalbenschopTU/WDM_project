@@ -1,6 +1,5 @@
 version: "3"
 services:
-
   gateway:
     image: nginx:latest
     volumes:
@@ -38,6 +37,8 @@ services:
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
       - env/payment_redis.env
+    environment:
+      - GATEWAY_URL=http://gateway:80
 
   payment-db:
     image: redis:latest
