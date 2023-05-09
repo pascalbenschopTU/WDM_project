@@ -51,7 +51,7 @@ def payment_status(user_id: str, order_id: str):
 
 ## define channels
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
+    pika.ConnectionParameters(host='localhost', port=5672))
 channel = connection.channel()
 ## Forwards to stock.
 channel.queue_declare(queue=os.environ['payment_order'], durable=True)
@@ -60,7 +60,8 @@ channel.queue_declare(queue=os.environ['stock_payment'], durable=True)
 ## recieves messages from stock if not in order
 
 def stock_callback(ch, method, properties, body):
-    params = body.decode().split(",")
+    params = body.decode()
+    print("stock_callback: " + body.decode())
     status = remove_credit(params[1], params[0], params[2])
     message = f"{params[0]},True,payment"
     if status > 399: ## if something went wrong, we change the message
@@ -73,5 +74,7 @@ def stock_callback(ch, method, properties, body):
         properties=pika.BasicProperties(
         delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
     ))
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
-channel.basic_consume(queue=['stock_payment'], on_message_callback=stock_callback)
+channel.basic_consume(queue=os.environ['stock_payment'], on_message_callback=stock_callback)
+channel.start_consuming()

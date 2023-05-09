@@ -1,5 +1,17 @@
 version: "3"
 services:
+  rabbit-mq:
+    image: rabbitmq:latest
+    restart: always
+    network_mode: host
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    expose:
+     - 15672
+     - 5672
 
   gateway:
     image: nginx:latest
@@ -13,9 +25,15 @@ services:
     image: order:latest
     environment:
       - GATEWAY_URL=http://gateway:80
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+      - RABBITMQ_SERVER=rabbit-mq
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
     env_file:
       - env/order_redis.env
+    depends_on:
+      rabbit-mq:
+        condition: service_healthy
+    network_mode: host
+
 
   order-db:
     image: redis:latest
@@ -24,9 +42,17 @@ services:
   stock-service:
     build: ./stock
     image: stock:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    command: gunicorn -b 0.0.0.0:5001 app:app -w 1 --timeout 10
     env_file:
       - env/stock_redis.env
+    depends_on:
+      rabbit-mq:
+        condition: service_healthy
+    environment:
+        RABBITMQ_SERVER: rabbit-mq
+    network_mode: host
+
+      
 
   stock-db:
     image: redis:latest
@@ -35,16 +61,18 @@ services:
   payment-service:
     build: ./payment
     image: user:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+    command: gunicorn -b 0.0.0.0:5002 app:app -w 1 --timeout 10
     env_file:
       - env/payment_redis.env
+    depends_on:
+      rabbit-mq:
+        condition: service_healthy
+    environment:
+        RABBITMQ_SERVER: rabbit-mq
+    network_mode: host
 
   payment-db:
     image: redis:latest
     command: redis-server --requirepass redis --maxmemory 512mb
 
-  rabbit-mq:
-    image: rabbitmq:3
-    hostname: my-rabbit
-    container_name: some-rabbit1
-    restart: always
+

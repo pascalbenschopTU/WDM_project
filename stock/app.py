@@ -55,7 +55,7 @@ def remove_stock(item_id: str, amount: int):
 
 ## define channels
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
+    pika.ConnectionParameters(host='localhost', port=5672))
 channel = connection.channel()
 ## Forwards to stock.
 channel.queue_declare(queue=os.environ['order_stock'], durable=True)
@@ -79,6 +79,7 @@ def decrement(params, items):
 def order_callback(ch, method, properties, body):
     params = body.decode().split(",")
     items = []
+    print("order_callback body: " + body.decode())
     for i in range(3, len(params)):
         item = find_item(params[i])
         if not item: ## TODO is this valid python?
@@ -100,5 +101,7 @@ def order_callback(ch, method, properties, body):
         ## Don't know if we should perhaps acknowledge this or something.
         ## we will figure that out later
         pass
+    ch.basic_ack(delivery_tag=method.delivery_tag)
 
-channel.basic_consume(queue=['order_stock'], on_message_callback=order_callback)
+channel.basic_consume(queue=os.environ['order_stock'], on_message_callback=order_callback)
+channel.start_consuming()

@@ -44,16 +44,18 @@ def remove_item(order_id, item_id):
 
 @app.get('/find/<order_id>')
 def find_order(order_id):
+    return 200
     pass
 
 
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
-    return initiate_order(order_id)
+    return 200
+    #return initiate_order(order_id)
 
 ## define channels
 connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
+    pika.ConnectionParameters(host='localhost', port=5672))
 channel = connection.channel()
 ## Forwards to stock.
 channel.queue_declare(queue=os.environ['order_stock'], durable=True)
@@ -91,30 +93,38 @@ def order_status_callback(response):
         ## Delete queue as we will not use it anymore
         channel.queue_delete(queue=params[0])
         response[0] = params[1] == "True"
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+    return callback
 
 
 def initiate_order(order_id):
-    order = find_order(order_id)
-    message = generate_stock_message("dec", order)
+    #order = find_order(order_id)
+    #order = {"order_id": order_id, "user_id": 1, "items": [{"item_id": 1}, {"item_id": 2}]}
+    print("orderxxxx")
+    print("restart")
+    #message = generate_stock_message("dec", order)
+    message = "1,1,dec,1"
     callback_queue = channel.queue_declare(queue=order_id, durable=True)
+    print("initate order message: " + message)
     channel.basic_publish(
         exchange='',
         routing_key=os.environ['order_stock'],
         body=message,
         properties=pika.BasicProperties(
             delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE,
-            reply_to=callback_queue
+            reply_to=order_id
     ))
     ## this looks stupid but i need something that passes by reference, and i don't know enough about this to figure out something else.
     order_ok = [False]
     callback = order_status_callback(order_ok)
-    channel.basic_consume(queue=callback_queue, on_message_callback=callback)
+    channel.basic_consume(queue=order_id, on_message_callback=callback)
+    print("before stopxxx")
     ## TODO is this in ms?
     ## block thread until either response from payment service or stock service on the order_id channel
-    channel.connection.process_data_events(time_limit=5000)
+    channel.connection.process_data_events(time_limit=5)
     if order_ok[0]:
         return "Success", 200
     else:
         return "Stock or payment failed", 400
 
-    
+channel.start_consuming()
