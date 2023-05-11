@@ -25,7 +25,6 @@ services:
     image: order:latest
     environment:
       - GATEWAY_URL=http://gateway:80
-      - RABBITMQ_SERVER=rabbit-mq
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
     env_file:
       - env/order_redis.env
@@ -42,14 +41,14 @@ services:
   stock-service:
     build: ./stock
     image: stock:latest
-    command: gunicorn -b 0.0.0.0:5001 app:app -w 1 --timeout 10
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
       - env/stock_redis.env
+    environment:
+      - GATEWAY_URL=http://gateway:80
     depends_on:
       rabbit-mq:
         condition: service_healthy
-    environment:
-        RABBITMQ_SERVER: rabbit-mq
     network_mode: host
 
       
@@ -61,14 +60,15 @@ services:
   payment-service:
     build: ./payment
     image: user:latest
-    command: gunicorn -b 0.0.0.0:5002 app:app -w 1 --timeout 10
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
       - env/payment_redis.env
     depends_on:
       rabbit-mq:
         condition: service_healthy
     environment:
-        RABBITMQ_SERVER: rabbit-mq
+      - GATEWAY_URL=http://gateway:80
+
     network_mode: host
 
   payment-db:

@@ -54,54 +54,20 @@ def remove_stock(item_id: str, amount: int):
         return "Success", 200
 
 ## define channels
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost', port=5672))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672))
 channel = connection.channel()
-## Forwards to stock.
-channel.queue_declare(queue=os.environ['order_stock'], durable=True)
-## Recieves ok from payment if withdrawl was ok
-channel.queue_declare(queue=os.environ['stock_payment'], durable=True)
-## recieves messages from stock if not in order
+channel.queue_declare(queue="stock", durable=True)
 
-## TODO if any errors in any of them we drop it.
-## Have to be atomic, if errors occour we also don't post the message to payment
-def decrement(params, items):
-    total_price = sum([item.price for item in items])
-    paymentmessage = f"{params[0]},{params[1]},{total_price}"
-    channel.basic_publish(
-        exchange='',
-        routing_key=os.environ['order_payment'],
-        body=paymentmessage,
-        properties=pika.BasicProperties(
-            delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
-    ))
-
-def order_callback(ch, method, properties, body):
+def callback(ch, method, properties, body):
     params = body.decode().split(",")
-    items = []
-    print("order_callback body: " + body.decode())
-    for i in range(3, len(params)):
-        item = find_item(params[i])
-        if not item: ## TODO is this valid python?
-            message = f"False,stock" ## if not in, we post back to the order it wasn't in stock
-            channel.basic_publish(
-                exchange='',
-                routing_key=params[0],
-                body=message,
-                properties=pika.BasicProperties(
-                    delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
-                ))
-            return
-        items.append(item)
-
-    if params[2] == "dec":
-        decrement(params, items)
-    else:
-        ## increment stock
-        ## Don't know if we should perhaps acknowledge this or something.
-        ## we will figure that out later
-        pass
+    print("stock callback: " + body.decode())
+    if params[0] == "inc":
+        for i in range(1, len(params)):
+            add_stock(params[i], 1)
+    elif params[0] == "dec":
+        for i in range(1, len(params)):
+            remove_stock(params[i], 1)
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-channel.basic_consume(queue=os.environ['order_stock'], on_message_callback=order_callback)
+channel.basic_consume(queue="stock", on_message_callback=callback)
 channel.start_consuming()
