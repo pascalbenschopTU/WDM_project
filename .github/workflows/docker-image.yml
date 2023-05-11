@@ -5,14 +5,30 @@ on:
     branches: '**'
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v3
     - name: Run docker and tests
       run: | 
         docker compose up -d
+        sleep 5
         python test/test_microservices.py
+
+  postman:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Use Node.js 18.x
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18.x
+        
+    - uses: actions/checkout@v3
+    - name: Run docker postman tests
+      run: | 
+        npm install -g newman
+        docker compose up -d
+        sleep 5
+        newman run test/WDM.postman.json

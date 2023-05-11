@@ -3,7 +3,6 @@ import atexit
 
 from flask import Flask
 import redis
-import pika
 
 app = Flask("stock-service")
 
@@ -35,7 +34,7 @@ def find_item(item_id: str):
     if None in item:
         return None, 404
 
-    return {'item_id': item_id, 'price': int(item[0]), 'stock': int(item[1])}, 200
+    return {'item_id': int(item_id), 'price': int(item[0]), 'stock': int(item[1])}, 200
 
 
 @app.post('/add/<item_id>/<amount>')
@@ -52,22 +51,3 @@ def remove_stock(item_id: str, amount: int):
     else:
         db.hincrby(f'item:{item_id}', 'stock', -int(amount))
         return "Success", 200
-
-## define channels
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost', port=5672))
-channel = connection.channel()
-channel.queue_declare(queue="stock", durable=True)
-
-def callback(ch, method, properties, body):
-    params = body.decode().split(",")
-    print("stock callback: " + body.decode())
-    if params[0] == "inc":
-        for i in range(1, len(params)):
-            add_stock(params[i], 1)
-    elif params[0] == "dec":
-        for i in range(1, len(params)):
-            remove_stock(params[i], 1)
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-
-channel.basic_consume(queue="stock", on_message_callback=callback)
-channel.start_consuming()

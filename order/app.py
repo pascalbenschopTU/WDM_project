@@ -4,7 +4,12 @@ import atexit
 from flask import Flask
 import redis
 import pika
+import requests
 
+from Order import Order
+
+STOCK_URL = "http://stock-service:5000"
+PAYMENT_URL = "http://payment-service:5000"
 gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
@@ -15,116 +20,154 @@ db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
                               db=int(os.environ['REDIS_DB']))
 
 
+## define channels
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
+channel = connection.channel()
+channel.queue_declare(queue="stock", durable=True)
+channel.queue_declare(queue="payment", durable=True)
+
 def close_db_connection():
     db.close()
 
-
 atexit.register(close_db_connection)
+
+def get_order(order_id: int) -> Order:
+    
+    byte_result = db.hmget(f'order:{order_id}', 'user_id', 'items', 'total_price', 'paid')
+    
+    # Check if we found an order with the given id
+    if None in byte_result:
+        return None
+    
+    # Convert and return the order
+    order = Order.bytes_to_order(int(order_id), byte_result)
+    return order
+
+def store_order(order: Order):
+    db.hset(f'order:{order.order_id}', mapping=order.to_redis_input())
+
 
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
-    pass
-
+    order_id = db.incr('order_id')
+    order = Order(order_id, user_id)
+    store_order(order)
+    return {"order_id": order_id}
 
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
-    pass
+    success: bool = bool(db.delete(f'order:{order_id}'))
+
+    if success:
+        return f'Succesfully removed order with id {order_id}', 200
+
+    return f'Could not remove order with id {order_id}', 200
+
 
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
-    pass
+
+    # Find the order
+    order = get_order(order_id)
+
+    # Case where the other is not found
+    if order is None:
+        return f'Could not find an order with order_id {order_id}', 400
+
+    # Find the item
+    response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
+    if response.status_code == 404:
+        return f'Could not find {item_id}', 404
+
+    item_price = response.json()['price']
+    
+    order.items.append(item_id)
+    order.total_price += item_price
+    store_order(order)
+    return f'Added item {item_id} to the order', 200
+
 
 
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
-    pass
+    
+    # Find the item
+    response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
+
+    if response.status_code == 404:
+        return f'Could not find {item_id}', 404
+
+    
+    # Find the order
+    order = get_order(order_id)
+
+    # Case where the other is not found
+    if order is None:
+        return f'Could not find an order with order_id {order_id}', 400
+    
+    item_price = response.json()['price']
+    items: list[str] = order.items
+
+    # Check if the order contains the item to remove
+    if not item_id in items:
+        return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
+    else:
+        order.total_price -= item_price
+        items.remove(item_id)
+
+    store_order(order)
+    return f'Removed item {item_id} from the order', 200
 
 
 @app.get('/find/<order_id>')
 def find_order(order_id):
-    return 200
-    pass
+
+    order = get_order(order_id)
+
+    # Check if we found an order with the given id
+    if order is None:
+        return f'Could not find an order with id {order_id}', 400
+
+    return order.__dict__, 200
+
 
 
 @app.post('/checkout/<order_id>')
 def checkout(order_id):
-    return 200
-    #return initiate_order(order_id)
+    order = get_order(order_id)
 
-## define channels
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost', port=5672))
-channel = connection.channel()
-## Forwards to stock.
-channel.queue_declare(queue=os.environ['order_stock'], durable=True)
-## Recieves ok from payment if withdrawl was ok
-channel.queue_declare(queue=os.environ['payment_order'], durable=True)
-## recieves messages from stock if not in order
-channel.queue_declare(queue=os.environ['stock_order'], durable=True)
+    # Check if we found an order with the given id
+    if order is None:
+        return f'Could not find an order with id {order_id}', 400
+    
+    reserved_items = []
 
-def generate_stock_message(action, order):
-    message = f"{order.order_id},{order.user_id},{action},"
-    for item in order.items.values():
-        message += item.item_id
-    return message
-
-# [0] = orderId, [1] = successfull, [3] = serivce
-def order_status_callback(response):
-    def callback(ch, method, properties, body):
-        params = body.decode().split(",")
-        order = find_order(params[0])
-        ## this only comes from the payment service
-        if params[1] == "True":
-            order.paid = True
-            ## TODO persist in db.
-        else:
-            ## if payment didn't go through, we reverse the changes made to the stock.
-            if params[2] == "payment":
-                message = generate_stock_message("dec", order)
-                channel.basic_publish(
-                    exchange='',
-                    routing_key=os.environ['order_stock'],
-                    body=message,
-                    properties=pika.BasicProperties(
-                        delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
-                ))
-        ## Delete queue as we will not use it anymore
-        channel.queue_delete(queue=params[0])
-        response[0] = params[1] == "True"
-        ch.basic_ack(delivery_tag=method.delivery_tag)
-    return callback
+    try:
+        for item in order.items:
+            order_response = requests.post(f"{STOCK_URL}/subtract/{item}/1")
+            if not (200 <= order_response.status_code < 300):
+                raise Exception("Not enough stock") 
+            reserved_items.append(item)
 
 
-def initiate_order(order_id):
-    #order = find_order(order_id)
-    #order = {"order_id": order_id, "user_id": 1, "items": [{"item_id": 1}, {"item_id": 2}]}
-    print("orderxxxx")
-    print("restart")
-    #message = generate_stock_message("dec", order)
-    message = "1,1,dec,1"
-    callback_queue = channel.queue_declare(queue=order_id, durable=True)
-    print("initate order message: " + message)
-    channel.basic_publish(
-        exchange='',
-        routing_key=os.environ['order_stock'],
-        body=message,
-        properties=pika.BasicProperties(
-            delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE,
-            reply_to=order_id
-    ))
-    ## this looks stupid but i need something that passes by reference, and i don't know enough about this to figure out something else.
-    order_ok = [False]
-    callback = order_status_callback(order_ok)
-    channel.basic_consume(queue=order_id, on_message_callback=callback)
-    print("before stopxxx")
-    ## TODO is this in ms?
-    ## block thread until either response from payment service or stock service on the order_id channel
-    channel.connection.process_data_events(time_limit=5)
-    if order_ok[0]:
-        return "Success", 200
-    else:
-        return "Stock or payment failed", 400
+        payment_response = requests.post(f"{PAYMENT_URL}/pay/{order.user_id}/{order_id}/{order.total_price}")
 
-channel.start_consuming()
+        if not (200 <= payment_response.status_code < 300):
+            raise Exception("Not enough credit") 
+        order.paid = True
+        store_order(order)
+    except:
+        # Roll back the reserved items
+        message = "inc,"
+        for item in reserved_items:
+            message += item + ","
+        message = message[:-1]
+        channel.basic_publish(exchange='',
+                      routing_key='stock',
+                      body=message)
+        return "Checkout failed", 400
+    
+    return "Checkout succeeded", 200
+
