@@ -75,6 +75,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    volumes:
+      - ./rabbitmq/consumers/payment:/HOME/FLASK-APP
     
   stock-consumer:
     build: ./rabbitmq/consumers/stock
@@ -85,3 +87,5 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    volumes:
+      - ./rabbitmq/consumers/stock:/HOME/FLASK-APP

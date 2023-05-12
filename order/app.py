@@ -62,7 +62,7 @@ def remove_order(order_id):
     if success:
         return f'Succesfully removed order with id {order_id}', 200
 
-    return f'Could not remove order with id {order_id}', 200
+    return f'Could not remove order with id {order_id}', 400
 
 
 
@@ -83,7 +83,7 @@ def add_item(order_id, item_id):
 
     item_price = response.json()['price']
     
-    order.items.append(item_id)
+    order.items[int(item_id)] = item_price
     order.total_price += item_price
     store_order(order)
     return f'Added item {item_id} to the order', 200
@@ -93,13 +93,6 @@ def add_item(order_id, item_id):
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
     
-    # Find the item
-    response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
-
-    if response.status_code == 404:
-        return f'Could not find {item_id}', 404
-
-    
     # Find the order
     order = get_order(order_id)
 
@@ -107,15 +100,12 @@ def remove_item(order_id, item_id):
     if order is None:
         return f'Could not find an order with order_id {order_id}', 400
     
-    item_price = response.json()['price']
-    items: list[str] = order.items
-
     # Check if the order contains the item to remove
-    if not item_id in items:
+    if not item_id in order.items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
     else:
-        order.total_price -= item_price
-        items.remove(item_id)
+        order.total_price -= order.items[item_id]
+        order.items.pop(item_id)
 
     store_order(order)
     return f'Removed item {item_id} from the order', 200
@@ -130,7 +120,10 @@ def find_order(order_id):
     if order is None:
         return f'Could not find an order with id {order_id}', 400
 
-    return order.__dict__, 200
+    # Only return item id's
+    response = order.__dict__
+    response['items'] = list(order.items)
+    return response, 200
 
 
 
@@ -158,7 +151,7 @@ def checkout(order_id):
             raise Exception("Not enough credit") 
         order.paid = True
         store_order(order)
-    except:
+    except Exception as e:
         # Roll back the reserved items
         message = "inc,"
         for item in reserved_items:
@@ -167,7 +160,9 @@ def checkout(order_id):
         channel.basic_publish(exchange='',
                       routing_key='stock',
                       body=message)
-        return "Checkout failed", 400
+        if hasattr(e, 'message'):
+            return e.message, 400
+        return str(e), 400
     
     return "Checkout succeeded", 200
 

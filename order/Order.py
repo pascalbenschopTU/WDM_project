@@ -3,12 +3,12 @@ import json
 class Order:
     order_id: int
     user_id: int
-    items: list[str]
+    items: dict
     total_price: int
     paid: bool
 
 
-    def __init__(self, order_id: int, user_id: int, items: list[str] = [], total_price: int = 0, paid:bool = False):
+    def __init__(self, order_id: int, user_id: int, items: dict = {}, total_price: int = 0, paid:bool = False):
         self.order_id = order_id
         self.user_id = user_id
         self.items = items
