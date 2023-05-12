@@ -18,7 +18,7 @@ def add_stock(item_id: str, amount: int):
 
 def callback(ch, method, properties, body):
     params = body.decode().split(",")
-    with open('/HOME/FLASK-APPlog.txt', 'a') as f:
+    with open('/HOME/FLASK-APP/log.txt', 'a') as f:
     # Write some data to the file
         f.write(body.decode() + "\n")
     if params[0] == "inc":

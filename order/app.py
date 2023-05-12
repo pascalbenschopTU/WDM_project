@@ -158,7 +158,7 @@ def checkout(order_id):
             message += item + ","
         message = message[:-1]
         channel.basic_publish(exchange='',
-                      routing_key='stock',
+                        routing_key='stock',
                       body=message)
         if hasattr(e, 'message'):
             return e.message, 400
