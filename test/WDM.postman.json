@@ -249,7 +249,7 @@
 									"\r",
 									"pm.test(\"The response should have an order id\", function () {\r",
 									"    const responseJson = pm.response.json();\r",
-									"    pm.expect(responseJson.order_id).to.be.a('number');\r",
+									"    pm.expect(responseJson.order_id).to.be.a('string');\r",
 									"});\r",
 									"\r",
 									"var jsonData = JSON.parse(responseBody);\r",

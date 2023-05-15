@@ -45,7 +45,7 @@ def create_order(user_id):
     order = collection.insert_one(Order.create_empty(user_id))
     order_id = order.inserted_id
 
-    return {"order_id": str(order_id)}, 201
+    return {"order_id": str(order_id)}, 200
 
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
@@ -114,7 +114,7 @@ def find_order(order_id):
         return f'Could not find an order with id {order_id}', 400
 
     # Only return item id's
-    response = order
+    response = order.to_mongo_input()
     response['items'] = list(order.items)
     return response, 200
 
