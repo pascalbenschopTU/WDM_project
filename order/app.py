@@ -50,7 +50,7 @@ def create_order(user_id):
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
     collection = db.orders
-    result = collection.delete_one({'_id': order_id})
+    result = collection.delete_one({'_id': ObjectId(order_id)})
 
     # Check if we deleted an order
     if result.deleted_count == 1:
@@ -114,7 +114,7 @@ def find_order(order_id):
         return f'Could not find an order with id {order_id}', 400
 
     # Only return item id's
-    response = order.__dict__
+    response = order
     response['items'] = list(order.items)
     return response, 200
 
