@@ -28,7 +28,6 @@ services:
     image: order:latest
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
     env_file:
-      - env/order_redis.env
       - env/order_mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
@@ -41,15 +40,15 @@ services:
   order-mongodb:
     image: mongo:latest
     restart: unless-stopped
+    container_name: order-mongodb
     command: mongod --auth
+    ports:
+      - 27017:27017
     volumes:
       - order_mongodb_data:/data/db
+      - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
     env_file:
-      - env/order_mongodb.env
-
-  # order-db:
-  #   image: redis:latest
-  #   command: redis-server --requirepass redis --maxmemory 512mb
+      - env/order_mongodb_init.env
 
   stock-service:
     build: ./stock
@@ -66,13 +65,13 @@ services:
     image: redis:latest
     command: redis-server --requirepass redis --maxmemory 512mb
 
-  stock-postgres:
-    image: postgres:latest
-    restart: unless-stopped
-    volumes:
-      - stock_postgres_data:/var/lib/postgresql/data
-    env_file:
-      - env/stock_postgresql.env
+  # stock-postgres:
+  #   image: postgres:latest
+  #   restart: unless-stopped
+  #   volumes:
+  #     - stock_postgres_data:/var/lib/postgresql/data
+  #   env_file:
+  #     - env/stock_postgresql.env
 
   payment-service:
     build: ./payment
@@ -83,22 +82,22 @@ services:
       - env/payment_mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
-    depends_on:
-      payment-mongodb:
-        condition: service_started
+    # depends_on:
+    #   payment-mongodb:
+    #     condition: service_started
 
   payment-db:
     image: redis:latest
     command: redis-server --requirepass redis --maxmemory 512mb
 
-  payment-mongodb:
-    image: mongo:latest
-    restart: unless-stopped
-    command: mongod --auth
-    volumes:
-      - payment_mongodb_data:/data/db
-    env_file:
-      - env/payment_mongodb.env
+  # payment-mongodb:
+  #   image: mongo:latest
+  #   restart: unless-stopped
+  #   command: mongod --auth
+  #   volumes:
+  #     - payment_mongodb_data:/data/db
+  #   env_file:
+  #     - env/payment_mongodb.env
   
   payment-consumer:
     build: ./rabbitmq/consumers/payment

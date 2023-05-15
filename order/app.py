@@ -1,9 +1,7 @@
 import os
-import atexit
 
 from flask import Flask
-from flask_pymongo import PyMongo
-import redis
+from flask_pymongo import PyMongo, ObjectId
 import pika
 import requests
 
@@ -15,15 +13,9 @@ gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
 
-# db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-#                               port=int(os.environ['REDIS_PORT']),
-#                               password=os.environ['REDIS_PASSWORD'],
-#                               db=int(os.environ['REDIS_DB']))
-
 app.config["MONGO_URI"] = 'mongodb://' + os.environ['MONGODB_USERNAME'] + ':' + os.environ['MONGODB_PASSWORD'] + '@' + os.environ['MONGODB_HOSTNAME'] + ':27017/' + os.environ['MONGODB_DATABASE']
 mongo = PyMongo(app)
 db = mongo.db
-
 
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
@@ -31,56 +23,36 @@ channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 channel.queue_declare(queue="payment", durable=True)
 
-# def close_db_connection():
-#     db.close()
-
-# atexit.register(close_db_connection)
 
 def get_order(order_id: int) -> Order:
-    
-    # byte_result = db.hmget(f'order:{order_id}', 'user_id', 'items', 'total_price', 'paid')
     collection = db.orders
-    order = collection.find_one({'_id': order_id}, projection={'user_id': 1, 'items': 1, 'total_price': 1, 'paid': 1})
+    order = collection.find_one({'_id': ObjectId(order_id)})
     
     # Check if we found an order with the given id
-    if None in order:
+    if order is None or None in order:
         return None
     
     # Convert and return the order
-    # order = Order.bytes_to_order(int(order_id), byte_result)
-    return order
+    return Order.from_mongo_output(order)
 
 def store_order(order: Order):
-    # db.hset(f'order:{order.order_id}', mapping=order.to_redis_input())
     collection = db.orders
-    order_document = order.to_redis_input()
-    collection.update_one({'_id': order.order_id}, {'$set': order_document}, upsert=True)
-
-
+    collection.update_one({'_id': ObjectId(order.order_id)}, {'$set': order.to_mongo_input()}, upsert=True)
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
-    collection = db.counters
-    counter_doc = collection.find_one({'_id': 'order_id'})
-    if counter_doc is None:
-        collection.insert_one({'_id': 'order_id', 'next_order_id': 1})
-        counter_doc = collection.find_one({'_id': 'order_id'})
-    else:
-        collection.update_one({'_id': 'order_id'}, {'$inc': {'next_order_id': 1}})
-        counter_doc = collection.find_one({'_id': 'order_id'})
-    
-    next_order_id = counter_doc['next_order_id']
-    # order_id = db.incr('order_id')
-    order = Order(next_order_id, user_id)
-    store_order(order)
-    return {"order_id": next_order_id}
+    collection = db.orders
+    order = collection.insert_one(Order.create_empty(user_id))
+    order_id = order.inserted_id
+
+    return {"order_id": str(order_id)}, 201
 
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
-    # success: bool = bool(db.delete(f'order:{order_id}'))
     collection = db.orders
     result = collection.delete_one({'_id': order_id})
 
+    # Check if we deleted an order
     if result.deleted_count == 1:
         return f'Succesfully removed order with id {order_id}', 200
 
@@ -90,7 +62,6 @@ def remove_order(order_id):
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
-
     # Find the order
     order = get_order(order_id)
 
@@ -103,9 +74,9 @@ def add_item(order_id, item_id):
     if response.status_code == 404:
         return f'Could not find {item_id}', 404
 
-    item_price = response.json()['price']
+    item_price = response.json()['price']   
     
-    order.items[int(item_id)] = item_price
+    order.items[item_id] = item_price
     order.total_price += item_price
     store_order(order)
     return f'Added item {item_id} to the order', 200
