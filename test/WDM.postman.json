@@ -1,11 +1,163 @@
 {
 	"info": {
-		"_postman_id": "bd4fffe0-f1ae-4e48-a72b-3dce6c429499",
+		"_postman_id": "0f7b2d29-4bd5-4651-af31-252a73f921e1",
 		"name": "WDM",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "12250391"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
+		{
+			"name": "Create User",
+			"item": [
+				{
+					"name": "Create User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have an user id\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.user_id).to.be.a('number');\r",
+									"});\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"pm.collectionVariables.set(\"user_id1\", jsonData.user_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/create_user",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"create_user"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find User",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Verify that the response is correct\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.user_id).eq(pm.collectionVariables.get(\"user_id1\"));\r",
+									"    pm.expect(responseJson.credit).eq(0);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"find_user",
+								"{{user_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Credits to user",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"user_id1_credit\", 100);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/add_funds/{{user_id1}}/100",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"add_funds",
+								"{{user_id1}}",
+								"100"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find User with funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Verify that the response is correct\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.user_id).eq(pm.collectionVariables.get(\"user_id1\"));\r",
+									"    pm.expect(responseJson.credit).eq(pm.collectionVariables.get(\"user_id1_credit\"));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"find_user",
+								"{{user_id1}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
 		{
 			"name": "Stock",
 			"item": [
@@ -26,7 +178,8 @@
 									"});\r",
 									"\r",
 									"var jsonData = JSON.parse(responseBody);\r",
-									"pm.collectionVariables.set(\"item_id1\", jsonData.item_id);"
+									"pm.collectionVariables.set(\"item_id1\", jsonData.item_id);\r",
+									"pm.collectionVariables.set(\"item_id1_price\", 98);"
 								],
 								"type": "text/javascript"
 							}
@@ -36,14 +189,14 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{stockRoot}}/item/create/{{item_id1_price}}",
+							"raw": "{{stockRoot}}/item/create/98",
 							"host": [
 								"{{stockRoot}}"
 							],
 							"path": [
 								"item",
 								"create",
-								"{{item_id1_price}}"
+								"98"
 							]
 						}
 					},
@@ -58,7 +211,9 @@
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {\r",
 									"  pm.response.to.have.status(200);\r",
-									"});"
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"item_id1_quantity\", 3)"
 								],
 								"type": "text/javascript"
 							}
@@ -68,14 +223,14 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{stockRoot}}/add/{{item_id1}}/{{item_id1_quantity}}",
+							"raw": "{{stockRoot}}/add/{{item_id1}}/3",
 							"host": [
 								"{{stockRoot}}"
 							],
 							"path": [
 								"add",
 								"{{item_id1}}",
-								"{{item_id1_quantity}}"
+								"3"
 							]
 						}
 					},
@@ -130,7 +285,9 @@
 								"exec": [
 									"pm.test(\"Status code is 200\", function () {\r",
 									"  pm.response.to.have.status(200);\r",
-									"});"
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"item_id2_quantity\", 1)"
 								],
 								"type": "text/javascript"
 							}
@@ -140,14 +297,14 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{stockRoot}}/add/{{item_id2}}/{{item_id2_quantity}}",
+							"raw": "{{stockRoot}}/add/{{item_id2}}/1",
 							"host": [
 								"{{stockRoot}}"
 							],
 							"path": [
 								"add",
 								"{{item_id2}}",
-								"{{item_id2_quantity}}"
+								"1"
 							]
 						}
 					},
@@ -263,13 +420,13 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{ordersRoot}}/create/{{user_id}}",
+							"raw": "{{ordersRoot}}/create/{{user_id1}}",
 							"host": [
 								"{{ordersRoot}}"
 							],
 							"path": [
 								"create",
-								"{{user_id}}"
+								"{{user_id1}}"
 							],
 							"query": [
 								{
@@ -296,7 +453,7 @@
 									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
-									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id1\")), \"The order should have the correct user_id\");\r",
 									"    pm.expect(responseJson.items.length).eq(0, \"There are no items in the order\");\r",
 									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
 									"}); "
@@ -368,7 +525,7 @@
 									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
-									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id1\")), \"The order should have the correct user_id\");\r",
 									"    pm.expect(responseJson.items.length).eq(1, \"There is one item in the order\");\r",
 									"    pm.expect(responseJson.items).contains(\"\" + pm.variables.get(\"item_id1\"), \"The item with id1 should be in the order\");\r",
 									"    pm.expect(responseJson.total_price).eq(parseInt(pm.variables.get(\"item_id1_price\")), \"The total price should be equal to the price of item 1\");\r",
@@ -505,10 +662,10 @@
 									"  pm.response.to.have.status(200);\r",
 									"});\r",
 									"\r",
-									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
+									"pm.test(\"Check if the order is initialized correctly\", function() {\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
-									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id1\")), \"The order should have the correct user_id\");\r",
 									"    pm.expect(responseJson.items.length).eq(2, \"There should be two items in the order\");\r",
 									"    pm.expect(responseJson.items).contains(\"\" + pm.variables.get(\"item_id1\"), \"The item with id1 should be in the order\");\r",
 									"    pm.expect(responseJson.items).contains(\"\" + pm.variables.get(\"item_id2\"), \"The item with id2 should be in the order\");\r",
@@ -583,10 +740,10 @@
 									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
-									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id1\")), \"The order should have the correct user_id\");\r",
 									"    pm.expect(responseJson.items.length).eq(1, \"There should be two items in the order\");\r",
 									"    pm.expect(responseJson.items[0]).eq(\"\" + pm.variables.get(\"item_id2\"), \"The item with id2 should be in the order\");\r",
-									"    pm.expect(responseJson.total_price).eq(parseInt(pm.variables.get(\"item_id2_price\")), \"The total price should be equal to the sum of the price of item 2\");\r",
+									"    pm.expect(responseJson.total_price).eq(parseInt(pm.variables.get(\"item_id2_price\")), \"The total price should be equal to the price of item 2\");\r",
 									"    pm.expect(responseJson.paid).eq(false, \"The order is not paid\");\r",
 									"}); "
 								],
@@ -605,6 +762,550 @@
 							"path": [
 								"find",
 								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Checkout order with item 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.collectionVariables.set(\"user_id1_credit\", (pm.collectionVariables.get(\"user_id1_credit\") - pm.collectionVariables.get(\"item_id2_price\")))\r",
+									"\r",
+									"pm.collectionVariables.set(\"item_id2_quantity\", parseInt(pm.collectionVariables.get(\"item_id2_quantity\") - 1))"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/checkout/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"checkout",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Verify Checkout Actions",
+			"item": [
+				{
+					"name": "Get Order Single Item",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
+									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id1\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.items.length).eq(1, \"There should be two items in the order\");\r",
+									"    pm.expect(responseJson.items[0]).eq(\"\" + pm.variables.get(\"item_id2\"), \"The item with id2 should be in the order\");\r",
+									"    pm.expect(responseJson.total_price).eq(parseInt(pm.variables.get(\"item_id2_price\")), \"The total price should be equal to the price of item 2\");\r",
+									"    pm.expect(responseJson.paid).eq(true, \"The order is paid\");\r",
+									"}); "
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/find/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"find",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have the correct values\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.item_id).eq(pm.collectionVariables.get(\"item_id2\"), \"The item id should be correct\");\r",
+									"    pm.expect(responseJson.price).to.eq(parseInt(pm.collectionVariables.get(\"item_id2_price\")));\r",
+									"    pm.expect(responseJson.stock).to.eq(parseInt(pm.collectionVariables.get(\"item_id2_quantity\")));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{stockRoot}}/find/{{item_id2}}",
+							"host": [
+								"{{stockRoot}}"
+							],
+							"path": [
+								"find",
+								"{{item_id2}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find User with funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Verify that the response is correct\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.user_id).eq(pm.collectionVariables.get(\"user_id1\"));\r",
+									"    pm.expect(responseJson.credit).eq(pm.collectionVariables.get(\"user_id1_credit\"));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"find_user",
+								"{{user_id1}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Out of stock order",
+			"item": [
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have an order id\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).to.be.a('number');\r",
+									"});\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"pm.collectionVariables.set(\"order_id\", jsonData.order_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/create/{{user_id1}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"create",
+								"{{user_id1}}"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/addItem/{{order_id}}/{{item_id2}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"addItem",
+								"{{order_id}}",
+								"{{item_id2}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Checkout order with item 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"  pm.response.to.have.status(400);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/checkout/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"checkout",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have the correct values\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.item_id).eq(pm.collectionVariables.get(\"item_id2\"), \"The item id should be correct\");\r",
+									"    pm.expect(responseJson.price).to.eq(parseInt(pm.collectionVariables.get(\"item_id2_price\")));\r",
+									"    pm.expect(responseJson.stock).to.eq(parseInt(pm.collectionVariables.get(\"item_id2_quantity\")));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{stockRoot}}/find/{{item_id2}}",
+							"host": [
+								"{{stockRoot}}"
+							],
+							"path": [
+								"find",
+								"{{item_id2}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find User with funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Verify that the response is correct\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.user_id).eq(pm.collectionVariables.get(\"user_id1\"));\r",
+									"    pm.expect(responseJson.credit).eq(pm.collectionVariables.get(\"user_id1_credit\"));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"find_user",
+								"{{user_id1}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Out of Funds",
+			"item": [
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have an order id\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.order_id).to.be.a('number');\r",
+									"});\r",
+									"\r",
+									"var jsonData = JSON.parse(responseBody);\r",
+									"pm.collectionVariables.set(\"order_id\", jsonData.order_id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/create/{{user_id1}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"create",
+								"{{user_id1}}"
+							],
+							"query": [
+								{
+									"key": "key",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/addItem/{{order_id}}/{{item_id1}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"addItem",
+								"{{order_id}}",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Checkout order with item 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400\", function () {\r",
+									"  pm.response.to.have.status(400);\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{ordersRoot}}/checkout/{{order_id}}",
+							"host": [
+								"{{ordersRoot}}"
+							],
+							"path": [
+								"checkout",
+								"{{order_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Item2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"The response should have the correct values\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.item_id).eq(pm.collectionVariables.get(\"item_id1\"), \"The item id should be correct\");\r",
+									"    pm.expect(responseJson.price).to.eq(parseInt(pm.collectionVariables.get(\"item_id1_price\")));\r",
+									"    pm.expect(responseJson.stock).to.eq(parseInt(pm.collectionVariables.get(\"item_id1_quantity\")));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{stockRoot}}/find/{{item_id1}}",
+							"host": [
+								"{{stockRoot}}"
+							],
+							"path": [
+								"find",
+								"{{item_id1}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Find User with funds",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {\r",
+									"  pm.response.to.have.status(200);\r",
+									"});\r",
+									"\r",
+									"pm.test(\"Verify that the response is correct\", function () {\r",
+									"    const responseJson = pm.response.json();\r",
+									"    pm.expect(responseJson.user_id).eq(pm.collectionVariables.get(\"user_id1\"));\r",
+									"    pm.expect(responseJson.credit).eq(pm.collectionVariables.get(\"user_id1_credit\"));\r",
+									"});\r",
+									""
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"host": [
+								"{{paymentRoot}}"
+							],
+							"path": [
+								"find_user",
+								"{{user_id1}}"
 							]
 						}
 					},
@@ -677,7 +1378,7 @@
 			"type": "default"
 		},
 		{
-			"key": "user_id",
+			"key": "user_id1",
 			"value": "1",
 			"type": "default"
 		},
@@ -715,6 +1416,16 @@
 			"key": "item_id2_quantity",
 			"value": "1",
 			"type": "string"
+		},
+		{
+			"key": "paymentRoot",
+			"value": "http://127.0.0.1:8000/payment/",
+			"type": "default"
+		},
+		{
+			"key": "user_id1_credit",
+			"value": "0",
+			"type": "default"
 		}
 	]
 }
