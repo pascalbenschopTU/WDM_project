@@ -114,7 +114,7 @@ def find_order(order_id):
         return f'Could not find an order with id {order_id}', 400
 
     # Only return item id's
-    response = order.to_mongo_input()
+    response = order.to_json()
     response['items'] = list(order.items)
     return response, 200
 
