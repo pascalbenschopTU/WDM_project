@@ -21,8 +21,8 @@ class Order:
     def to_mongo_input(self) -> dict:
         return {'user_id': self.user_id, 'items': self.items, 'total_price': self.total_price, 'paid': self.paid}
     
-    def to_json(self) -> dict:
-        return {'order_id': self.order_id, 'user_id': self.user_id, 'items': self.items, 'total_price': self.total_price, 'paid': self.paid}
+    def to_response(self) -> dict:
+        return {'order_id': str(self.order_id), 'user_id': self.user_id, 'items': self.items, 'total_price': self.total_price, 'paid': self.paid}
     
     def from_mongo_output(order_dict: dict):
         order_id = order_dict['_id']
