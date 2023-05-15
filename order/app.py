@@ -3,6 +3,7 @@ import atexit
 
 from flask import Flask
 import redis
+import pika
 import requests
 
 from Order import Order
@@ -18,6 +19,12 @@ db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
                               password=os.environ['REDIS_PASSWORD'],
                               db=int(os.environ['REDIS_DB']))
 
+
+## define channels
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
+channel = connection.channel()
+channel.queue_declare(queue="stock", durable=True)
+channel.queue_declare(queue="payment", durable=True)
 
 def close_db_connection():
     db.close()
@@ -55,7 +62,7 @@ def remove_order(order_id):
     if success:
         return f'Succesfully removed order with id {order_id}', 200
 
-    return f'Could not remove order with id {order_id}', 200
+    return f'Could not remove order with id {order_id}', 400
 
 
 
@@ -76,7 +83,7 @@ def add_item(order_id, item_id):
 
     item_price = response.json()['price']
     
-    order.items[item_id] = item_price
+    order.items[int(item_id)] = item_price
     order.total_price += item_price
     store_order(order)
     return f'Added item {item_id} to the order', 200
@@ -115,7 +122,7 @@ def find_order(order_id):
 
     # Only return item id's
     response = order.__dict__
-    response['items'] = list(order.items.keys())
+    response['items'] = list(order.items)
     return response, 200
 
 
@@ -144,11 +151,18 @@ def checkout(order_id):
             raise Exception("Not enough credit") 
         order.paid = True
         store_order(order)
-    except:
+    except Exception as e:
         # Roll back the reserved items
+        message = "inc,"
         for item in reserved_items:
-            requests.post(f"{STOCK_URL}/add/{item}/1")
-        return "Checkout failed", 400
+            message += item + ","
+        message = message[:-1]
+        channel.basic_publish(exchange='',
+                        routing_key='stock',
+                      body=message)
+        if hasattr(e, 'message'):
+            return e.message, 400
+        return str(e), 400
     
     return "Checkout succeeded", 200
 

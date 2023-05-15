@@ -4,7 +4,6 @@ import atexit
 from flask import Flask
 import redis
 
-
 app = Flask("stock-service")
 
 db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
