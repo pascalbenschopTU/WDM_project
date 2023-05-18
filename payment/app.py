@@ -1,30 +1,32 @@
 import os
-import atexit
+import sys
 from flask import Flask
 import redis
+from flask_pymongo import PyMongo, ObjectId
 
 app = Flask('payment-service')
+
+username = os.environ['MONGODB_USERNAME']
+password = os.environ['MONGODB_PASSWORD']
+hostname = os.environ['MONGODB_HOSTNAME']
+database = os.environ['MONGODB_DATABASE']
 gateway_url = os.environ['GATEWAY_URL']
 
-db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-                              port=int(os.environ['REDIS_PORT']),
-                              password=os.environ['REDIS_PASSWORD'],
-                              db=int(os.environ['REDIS_DB']))
+app.config["MONGO_URI"] = 'mongodb://' + os.environ['MONGODB_USERNAME'] + ':' + os.environ['MONGODB_PASSWORD'] + '@' + os.environ['MONGODB_HOSTNAME'] + ':27018/' + os.environ['MONGODB_DATABASE']
+mongo = PyMongo(app)
+db = mongo.db
 
-
-def close_db_connection():
-    db.close()
-
-
-atexit.register(close_db_connection)
 
 
 @app.post('/create_user')
 def create_user():
-    user_id = db.incr('user_id')
-    user = {'user_id': user_id, 'credit': 0}
-    db.hmset(f'user:{user_id}', user)
-    return {"user_id": user_id}, 200
+    print("did this", file=sys.stderr)
+    collection = db.users
+    user = collection.insert_one({'credit': 0})
+    return {'user_id': 0}
+    user_id = user.inserted_id
+    return {'user_id': user_id}
+
 
 
 @app.get('/find_user/<user_id>')

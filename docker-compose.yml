@@ -86,19 +86,22 @@ services:
     #   payment-mongodb:
     #     condition: service_started
 
-  payment-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+  # payment-db:
+  #   image: redis:latest
+  #   command: redis-server --requirepass redis --maxmemory 512mb
 
-  # payment-mongodb:
-  #   image: mongo:latest
-  #   restart: unless-stopped
-  #   command: mongod --auth
-  #   volumes:
-  #     - payment_mongodb_data:/data/db
-  #   env_file:
-  #     - env/payment_mongodb.env
-  
+  payment-mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    command: mongod --auth
+    volumes:
+      - payment_mongodb_data:/data/db
+      - ./payment/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    env_file:
+      - env/payment_mongodb.env
+    ports:
+      - 27018:27017
+
   payment-consumer:
     build: ./rabbitmq/consumers/payment
     image: payment-consumer:latest
