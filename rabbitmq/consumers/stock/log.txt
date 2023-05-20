@@ -1,1 +1,6 @@
-inc,8,7,6
+inc,8,7,6inc,1
+inc,4
+inc,7
+inc,7,8
+inc,10
+inc,13
