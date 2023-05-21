@@ -1,7 +1,6 @@
 import os
-import sys
+
 from flask import Flask
-import redis
 from flask_pymongo import PyMongo, ObjectId
 
 app = Flask('payment-service')
