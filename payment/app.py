@@ -12,7 +12,8 @@ hostname = os.environ['MONGODB_HOSTNAME']
 database = os.environ['MONGODB_DATABASE']
 gateway_url = os.environ['GATEWAY_URL']
 
-app.config["MONGO_URI"] = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:27017/{os.environ['MONGODB_DATABASE']}"
+app.config["MONGO_URI"] = f"mongodb://{username}:{password}@{hostname}:27017/{database}"
+
 mongo = PyMongo(app)
 db = mongo.db
 user_collection = db.users
