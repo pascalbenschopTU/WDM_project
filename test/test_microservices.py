@@ -1,7 +1,7 @@
 import unittest
 
 import utils as tu
-
+import time
 
 class TestMicroservices(unittest.TestCase):
 
@@ -116,6 +116,8 @@ class TestMicroservices(unittest.TestCase):
         checkout_response = tu.checkout_order(order_id).status_code
         self.assertTrue(tu.status_code_is_failure(checkout_response))
 
+        # Sleep 1 sec to let the db get consistent again
+        time.sleep(1)
         stock_after_subtract: int = tu.find_item(item_id1)['stock']
         self.assertEqual(stock_after_subtract, 15)
 
