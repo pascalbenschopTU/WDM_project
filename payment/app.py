@@ -29,7 +29,7 @@ def create_user():
 @app.get('/find_user/<user_id>')
 def find_user(user_id: str):
     user = user_collection.find_one({'_id': ObjectId(user_id)})
-    if None in user:
+    if user is None:
         return {'Error': 'User not found'}, 404
     return {'user_id': user_id, 'credit': user['credit']}, 200
 
@@ -38,7 +38,11 @@ def find_user(user_id: str):
 def add_credit(user_id: str, amount: int):
     if int(amount) < 0:
         return {'Error': 'Amount must be positive'}, 400
-    user = user_collection.find_one_or_404({'_id': ObjectId(user_id)})
+
+    user = user_collection.find_one({'_id': ObjectId(user_id)})
+    if user is None:
+        return {'Error': 'User not found'}, 404
+    
     credit: int = int(user['credit'])
     newCredit = credit + int(amount)
     result = user_collection.update_one(
@@ -62,7 +66,10 @@ def remove_credit(user_id: str, order_id: str, amount: int):
     if order:
         return 'Order already paid', 401
 
-    user = user_collection.find_one_or_404({'_id': ObjectId(user_id)})
+    user = user_collection.find_one({'_id': ObjectId(user_id)})
+    if user is None:
+        return {'Error': 'User not found'}, 404
+    
     credit: int = int(user['credit'])
     
     # For some reason amount is not an int but string at this point
@@ -86,10 +93,16 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
 @app.post('/cancel/<user_id>/<order_id>')
 def cancel_payment(user_id: str, order_id: str):
-    order = paid_order_colleciton.find_one_or_404({'order_id': order_id})
+    order = paid_order_colleciton.find_one({'order_id': order_id})
+    if order is None:
+        return {'Error': 'Order not found'}, 404
+
     amount = int(order['amount'])
     
-    user = user_collection.find_one_or_404({'_id': ObjectId(user_id)})
+    user = user_collection.find_one({'_id': ObjectId(user_id)})
+    if user is None:
+        return {'Error': 'User not found'}, 404
+    
     credit = int(user['credit'])
 
     newCredit = credit + amount
