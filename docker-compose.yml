@@ -67,6 +67,7 @@ services:
     image: postgres:latest
     restart: always
     environment:
+      - POSTGRES_DB=stock
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     logging:
@@ -77,9 +78,11 @@ services:
       - "5432:5432"
     volumes:
       - ./postgres-data:/var/lib/postgresql/data
-      - ./stock/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - ./stock/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
+      - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
+      - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -134,7 +137,7 @@ services:
       stock-service:
         condition: service_started
       stock-db:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./rabbitmq/consumers/stock:/HOME/FLASK-APP
 

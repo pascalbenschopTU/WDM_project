@@ -5,11 +5,10 @@ from flask import Flask
 
 app = Flask("stock-service")
 
-
 import psycopg2
 
 conn = psycopg2.connect(
-   database="postgres", user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
+   database=os.environ['POSTGRES_DB'], user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
 )
     
 cursor = conn.cursor()
@@ -64,6 +63,8 @@ def update_stock(item_id: str, amount: int, subtract: bool = False):
     cursor.execute(get_stock, (item_id,))
     stock = int(cursor.fetchone()[0])
     new_stock = stock - amount if subtract else stock + amount
+    if new_stock < 0:
+        return 'Not enough stock', 400
     update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
     cursor.execute(update_stock, (new_stock, item_id))
     return "Success", 200

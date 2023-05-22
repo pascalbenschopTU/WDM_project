@@ -1,13 +1,9 @@
 import pika
 import psycopg2
 import os
+import requests
 
-conn = psycopg2.connect(
-   database="postgres", user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
-)
-
-cursor = conn.cursor()
-
+STOCK_URL = "http://stock-service:5000"
 
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
@@ -15,14 +11,7 @@ channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 
 def add_stock(item_id: str, amount: int):
-    item_id = int(item_id)
-    get_stock = "SELECT stock FROM stock WHERE id = %s;"
-    cursor.execute(get_stock, (item_id,))
-    stock = cursor.fetchone()[0]
-    stock += amount
-    update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
-    cursor.execute(update_stock, (stock, item_id))
-    conn.commit()
+    requests.post(f"{STOCK_URL}/orders/add/{item_id}/{amount}")
 
 def callback(ch, method, properties, body):
     params = body.decode().split(",")
