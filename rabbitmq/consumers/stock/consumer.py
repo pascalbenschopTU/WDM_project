@@ -1,11 +1,12 @@
 import pika
-import redis
+import psycopg2
 import os
 
-db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-                              port=int(os.environ['REDIS_PORT']),
-                              password=os.environ['REDIS_PASSWORD'],
-                              db=int(os.environ['REDIS_DB']))
+conn = psycopg2.connect(
+   database="postgres", user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
+)
+
+cursor = conn.cursor()
 
 
 ## define channels
@@ -14,7 +15,14 @@ channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 
 def add_stock(item_id: str, amount: int):
-    db.hincrby(f'item:{item_id}', 'stock', int(amount))
+    item_id = int(item_id)
+    get_stock = "SELECT stock FROM stock WHERE id = %s;"
+    cursor.execute(get_stock, (item_id,))
+    stock = cursor.fetchone()[0]
+    stock += amount
+    update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
+    cursor.execute(update_stock, (stock, item_id))
+    conn.commit()
 
 def callback(ch, method, properties, body):
     params = body.decode().split(",")

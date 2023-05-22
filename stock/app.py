@@ -2,52 +2,72 @@ import os
 import atexit
 
 from flask import Flask
-import redis
 
 app = Flask("stock-service")
 
-db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-                              port=int(os.environ['REDIS_PORT']),
-                              password=os.environ['REDIS_PASSWORD'],
-                              db=int(os.environ['REDIS_DB']))
 
+import psycopg2
+
+conn = psycopg2.connect(
+   database="postgres", user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
+)
+    
+cursor = conn.cursor()
 
 def close_db_connection():
-    db.close()
-
+    conn.close()
 
 atexit.register(close_db_connection)
 
 
 @app.post('/item/create/<price>')
 def create_item(price: int):
-    item_id = db.incr('item_id')
-    item = {'item_id': item_id, 'price': price, 'stock': 0}
-    db.hset(f'item:{item_id}', mapping=item)
-
+    price = int(price)
+    if price < 0:
+        return 'Price must be positive', 400
+    
+    insert_item = "INSERT INTO stock (price, stock) VALUES (%s, %s) RETURNING id;"
+    cursor.execute(insert_item, (price, 0))
+    item_id: int = cursor.fetchone()[0]
+    item: dict[str, int] = {'item_id': item_id, 'price': price, 'stock': 0}
     return item, 201
 
 
 @app.get('/find/<item_id>')
 def find_item(item_id: str):
-    item = db.hmget(f'item:{item_id}', 'price', 'stock')
+    item_id = int(item_id)
+    get_item = "SELECT * FROM stock WHERE id = %s;"
+    cursor.execute(get_item, (item_id,))
+    item = cursor.fetchone()
     if None in item:
         return None, 404
-
-    return {'item_id': int(item_id), 'price': int(item[0]), 'stock': int(item[1])}, 200
+    item = {'item_id': int(item[0]), 'price': int(item[1]), 'stock': int(item[2])}
+    return item, 200
 
 
 @app.post('/add/<item_id>/<amount>')
 def add_stock(item_id: str, amount: int):
-    db.hincrby(f'item:{item_id}', 'stock', int(amount))
-    return "Success", 200
+    return update_stock(item_id, amount)
 
 
 @app.post('/subtract/<item_id>/<amount>')
 def remove_stock(item_id: str, amount: int):
-    stock = db.hget(f'item:{item_id}', 'stock')
-    if int(stock) < int(amount):
-        return "Not enough stock", 400
-    else:
-        db.hincrby(f'item:{item_id}', 'stock', -int(amount))
-        return "Success", 200
+    return update_stock(int(item_id), amount, subtract=True)
+
+def update_stock(item_id: str, amount: int, subtract: bool = False):
+    item_id = int(item_id)
+    amount = int(amount)
+    if amount < 0:
+        return 'Amount must be positive', 400
+    
+    get_stock = "SELECT stock FROM stock WHERE id = %s;"
+    cursor.execute(get_stock, (item_id,))
+    stock = int(cursor.fetchone()[0])
+    new_stock = stock - amount if subtract else stock + amount
+    update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
+    cursor.execute(update_stock, (new_stock, item_id))
+    return "Success", 200
+    
+
+
+
