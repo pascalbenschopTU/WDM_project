@@ -16,7 +16,7 @@ app.config["MONGO_URI"] = f"mongodb://{username}:{password}@{hostname}:27017/{da
 mongo = PyMongo(app)
 db = mongo.db
 user_collection = db.users
-paid_order_colleciton = db.paid_orders
+paid_order_collection = db.paid_orders
 
 @app.post('/create_user')
 def create_user():
@@ -61,7 +61,7 @@ def add_credit(user_id: str, amount: int):
 @app.post('/pay/<user_id>/<order_id>/<amount>')
 def remove_credit(user_id: str, order_id: str, amount: int):
     
-    order = paid_order_colleciton.find_one({'order_id': order_id})
+    order = paid_order_collection.find_one({'order_id': order_id})
 
     if order:
         return 'Order already paid', 401
@@ -87,13 +87,13 @@ def remove_credit(user_id: str, order_id: str, amount: int):
     if result.modified_count != 1:
         return {'Error': 'Something went wrong checking out the order'}, 400
 
-    paid_order_colleciton.insert_one({'order_id': order_id, 'amount': amount}) 
+    paid_order_collection.insert_one({'order_id': order_id, 'amount': amount}) 
     return 'Success', 200
 
 
 @app.post('/cancel/<user_id>/<order_id>')
 def cancel_payment(user_id: str, order_id: str):
-    order = paid_order_colleciton.find_one({'order_id': order_id})
+    order = paid_order_collection.find_one({'order_id': order_id})
     if order is None:
         return {'Error': 'Order not found'}, 404
 
@@ -115,12 +115,12 @@ def cancel_payment(user_id: str, order_id: str):
     if result.modified_count != 1:
         return {'Error': 'Something went wrong checking cancelling the order'}, 400
 
-    paid_order_colleciton.delete_one({'order_id': order_id})
+    paid_order_collection.delete_one({'order_id': order_id})
     return 'Success', 200
 
 
 @app.post('/status/<user_id>/<order_id>')
 def payment_status(user_id: str, order_id: str):
-    order = paid_order_colleciton.find_one({'order_id': order_id})
+    order = paid_order_collection.find_one({'order_id': order_id})
     return order is not None
 
