@@ -66,10 +66,8 @@ services:
   stock-db:
     image: postgres:latest
     restart: always
-    environment:
-      - POSTGRES_DB=stock
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+    env_file:
+      - env/stock_postgresql.env
     logging:
       options:
         max-size: 10m
@@ -83,8 +81,8 @@ services:
       - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
-      interval: 5s
-      timeout: 5s
+      interval: 10s
+      timeout: 10s
       retries: 5
 
   payment-service:

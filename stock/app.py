@@ -7,14 +7,14 @@ app = Flask("stock-service")
 
 import psycopg2
 
-conn = psycopg2.connect(
+db = psycopg2.connect(
    database=os.environ['POSTGRES_DB'], user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
 )
     
-cursor = conn.cursor()
+cursor = db.cursor()
 
 def close_db_connection():
-    conn.close()
+    db.close()
 
 atexit.register(close_db_connection)
 

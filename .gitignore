@@ -4,3 +4,4 @@
 **/__pycache__
 **/venv
 postgres-data
+**/log.txt
