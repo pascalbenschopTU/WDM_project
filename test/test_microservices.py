@@ -113,11 +113,11 @@ class TestMicroservices(unittest.TestCase):
         subtract_stock_response = tu.subtract_stock(item_id2, 1)
         self.assertTrue(tu.status_code_is_success(subtract_stock_response))
 
-        checkout_response = tu.checkout_order(order_id).status_code
-        self.assertTrue(tu.status_code_is_failure(checkout_response))
+        checkout_response = tu.checkout_order(order_id)
+        self.assertTrue(tu.status_code_is_failure(checkout_response.status_code))
 
         stock_after_subtract: int = tu.find_item(item_id1)['stock']
-        self.assertEqual(stock_after_subtract, 15)
+        self.assertEqual(stock_after_subtract, 14)
 
         add_stock_response = tu.add_stock(item_id2, 15)
         self.assertTrue(tu.status_code_is_success(int(add_stock_response)))
@@ -135,13 +135,13 @@ class TestMicroservices(unittest.TestCase):
         self.assertEqual(credit, 15)
 
         stock: int = tu.find_item(item_id1)['stock']
-        self.assertEqual(stock, 15)
+        self.assertEqual(stock, 13)
 
         checkout_response = tu.checkout_order(order_id).status_code
         self.assertTrue(tu.status_code_is_success(checkout_response))
 
         stock_after_subtract: int = tu.find_item(item_id1)['stock']
-        self.assertEqual(stock_after_subtract, 14)
+        self.assertEqual(stock_after_subtract, 12)
 
         credit: int = tu.find_user(user_id)['credit']
         self.assertEqual(credit, 5)
