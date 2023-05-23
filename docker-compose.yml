@@ -44,7 +44,7 @@ services:
     container_name: order-mongodb
     command: mongod --auth
     ports:
-      - 27017:27017
+      - 27018:27018
     volumes:
       - order_mongodb_data:/data/db
       - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
@@ -88,33 +88,32 @@ services:
     image: payment:latest
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
-      - env/payment_redis.env
       - env/payment_mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
-    # depends_on:
-    #   payment-mongodb:
-    #     condition: service_started
+    depends_on:
+      payment-mongodb:
+        condition: service_started
 
-  payment-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
-
-  # payment-mongodb:
-  #   image: mongo:latest
-  #   restart: unless-stopped
-  #   command: mongod --auth
-  #   volumes:
-  #     - payment_mongodb_data:/data/db
-  #   env_file:
-  #     - env/payment_mongodb.env
+  payment-mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    container_name: payment-mongodb
+    command: mongod --auth
+    ports:
+      - 27017:27017
+    volumes:
+      - payment_mongodb_data:/data/db
+      - ./payment/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    env_file:
+      - env/payment_mongodb_init.env
 
   payment-consumer:
     build: ./rabbitmq/consumers/payment
     image: payment-consumer:latest
     command: python consumer.py
     env_file:
-      - env/payment_redis.env
+      - env/payment_mongodb.env
     depends_on:
       rabbitmq:
         condition: service_healthy

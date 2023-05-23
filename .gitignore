@@ -3,5 +3,4 @@
 .vscode
 **/__pycache__
 **/venv
-postgres-data
-**/log.txt
+rabbitmq/**/log.txt
