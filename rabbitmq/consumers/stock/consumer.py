@@ -11,7 +11,7 @@ channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 
 def add_stock(item_id: str, amount: int):
-    requests.post(f"{STOCK_URL}/orders/add/{item_id}/{amount}")
+    requests.post(f"{STOCK_URL}/add/{item_id}/{amount}")
 
 def callback(ch, method, properties, body):
     params = body.decode().split(",")
