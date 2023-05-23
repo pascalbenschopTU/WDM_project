@@ -85,10 +85,6 @@ services:
       payment-mongodb:
         condition: service_started
 
-  # payment-db:
-  #   image: redis:latest
-  #   command: redis-server --requirepass redis --maxmemory 512mb
-
   payment-mongodb:
     image: mongo:latest
     restart: unless-stopped

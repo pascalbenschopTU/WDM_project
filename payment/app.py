@@ -36,23 +36,20 @@ def find_user(user_id: str):
 
 @app.post('/add_funds/<user_id>/<amount>')
 def add_credit(user_id: str, amount: int):
-    if int(amount) < 0:
-        return {'Error': 'Amount must be positive'}, 400
-
-    user = user_collection.find_one({'_id': ObjectId(user_id)})
-    if user is None:
-        return {'Error': 'User not found'}, 404
     
-    credit: int = int(user['credit'])
-    newCredit = credit + int(amount)
+    amount = int(amount)
+
+    if amount < 0:
+        return {'Error': 'Amount must be positive'}, 400
+    
     result = user_collection.update_one(
         # Filter to check if the credit is unchanged
-        {'_id': ObjectId(user_id), 'credit': { '$eq': credit}},
-        {'$set': {'credit': newCredit}}
+        {'_id': ObjectId(user_id)},
+        {'$inc': {'credit': amount}}
     )
 
     if result.modified_count != 1:
-        return {'Error': 'The credit was updated by someone else'}, 400
+        return {'Error': 'User not found'}, 404
     
     return {'Success': 'Credit is updated successfully'}, 200
 
@@ -61,6 +58,8 @@ def add_credit(user_id: str, amount: int):
 @app.post('/pay/<user_id>/<order_id>/<amount>')
 def remove_credit(user_id: str, order_id: str, amount: int):
     
+    amount = int(amount)
+
     order = paid_order_collection.find_one({'order_id': order_id})
 
     if order:
@@ -70,22 +69,14 @@ def remove_credit(user_id: str, order_id: str, amount: int):
     if user is None:
         return {'Error': 'User not found'}, 404
     
-    credit: int = int(user['credit'])
-    
-    # For some reason amount is not an int but string at this point
-    if credit < int(amount):
-        return 'Not enough credit', 400
-
-    # Update to transaction
-    newCredit = credit - int(amount)
     result = user_collection.update_one(
         # Filter to check if the credit is unchanged
-        {'_id': ObjectId(user_id), 'credit': { '$eq': credit}},
-        {'$set': {'credit': newCredit}}
+        {'_id': ObjectId(user_id), 'credit': { '$gte': amount}},
+        {'$inc': {'credit': -amount}}
     )
 
     if result.modified_count != 1:
-        return {'Error': 'Something went wrong checking out the order'}, 400
+        return {'Error': 'Not enough credit'}, 400
 
     paid_order_collection.insert_one({'order_id': order_id, 'amount': amount}) 
     return 'Success', 200
