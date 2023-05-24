@@ -1,20 +1,15 @@
 import pika
-import redis
-import os
+import requests
 
-db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-                              port=int(os.environ['REDIS_PORT']),
-                              password=os.environ['REDIS_PASSWORD'],
-                              db=int(os.environ['REDIS_DB']))
-
+STOCK_URL = "http://stock-service:5000"
 
 ## define channels
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 
 def add_stock(item_id: str, amount: int):
-    db.hincrby(f'item:{item_id}', 'stock', int(amount))
+    requests.post(f"{STOCK_URL}/add/{item_id}/{amount}")
 
 def callback(ch, method, properties, body):
     params = body.decode().split(",")
