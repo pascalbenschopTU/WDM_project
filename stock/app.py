@@ -3,14 +3,20 @@ import atexit
 from typing import List
 from flask import Flask
 from sqlalchemy import create_engine
-
+import pika
 app = Flask("stock-service")
-
+api_identifier = "xyzasd"
+import uuid
 import psycopg2
 
-# db = psycopg2.connect(
-#    database=os.environ['POSTGRES_DB'], user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
-# )
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
+channel = connection.channel()
+big_db = "stock_big_db"
+channel.queue_declare(queue=big_db, durable=True)
+channel.queue_declare(queue=api_identifier, durable=True)
+channel.exchange_declare(exchange='new_items', exchange_type='fanout')
+
+
 connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
 engine = create_engine(connection_string)
 
@@ -19,19 +25,13 @@ def close_db_connection():
 
 atexit.register(close_db_connection)
 
-
 @app.post('/item/create/<price>')
 def create_item(price: int):
     price = int(price)
-    if price < 0:
-        return 'Price must be positive', 400
-    
-    insert_item = "INSERT INTO stock (price, stock) VALUES (%s, %s) RETURNING id;"
-    with engine.connect() as conn:
-        cursor = conn.cursor()
-        cursor.execute(insert_item, (price, 0))
-        item_id: int = cursor.fetchone()[0]
-    item: dict[str, int] = {'item_id': item_id, 'price': price, 'stock': 0}
+    id = uuid.uuid4()
+    message = f"{id},{price}"
+    channel.basic_publish(exchange='logs', routing_key='', body=message)
+    item: dict[str, int] = {'item_id': id, 'price': price, 'stock': 0}
     return item, 201
 
 
@@ -63,7 +63,7 @@ def update_stock(item_id: str, amount: int, subtract: bool = False):
     if amount < 0:
         return 'Amount must be positive', 400
 
-    get_stock = "SELECT stock FROM stock WHERE id = %s;"
+    get_stock = "SELECT stock FROxM stock WHERE id = %s;"
     with engine.connect() as conn:
         cursor = conn.cursor()
         cursor.execute(get_stock, (item_id,))
@@ -75,32 +75,40 @@ def update_stock(item_id: str, amount: int, subtract: bool = False):
         cursor.execute(update_stock, (new_stock, item_id))
         return "Success", 200
 
-def decrement_stock_bulk(item_ids: List[str]):
+@app.post('/subtract_bulk/<item_ids>')
+def decrement_stock_bulk(item_ids: str):
+    ids = item_ids.split(",")
     with engine.connect() as conn:
         cursor = conn.cursor()
         try:
-            cursor.execute("BEGIN;")
             # Check if all stock counts are above 0.
-            cursor.execute("""
-                    SELECT COUNT(*)
+            items = cursor.execute("""
+                    SELECT (id, stock)
                     FROM stock
-                    WHERE id = ANY(%s) AND stock <= 0
+                    WHERE id = ANY(%s) AND stock > 0
                     FOR UPDATE;
-                """, (item_ids,))
+                """, (ids,))
             # if it's above 0, it isn't possible for all of them
-            count = cursor.fetchone()[0]
-            if count > 0:
-                cursor.commit()
-                return "Not enough stock", 404
+            for (id, amount) in items:
+                if amount <= 0:
+                    ## post message that we need more stock
+                    channel.basic_publish(exchange='',
+                        routing_key=big_db,
+                      body=f"{api_identifier},{id}")
+                    ## release transaction
+                    cursor.execute("END;")
+                    cursor.commit()
+                    return f"Not enough of {id}", 400
             # If all amounts are above 0, decrement them by 1
             cursor.execute("""
                 UPDATE stock
                 SET stock = stock - 1
                 WHERE id = ANY(%s) AND stock > 0;
-            """, (item_ids,))
+            """, (ids,))
+            cursor.execute("END;")
             cursor.commit()
         except psycopg2.Error as e:
             # Handle any errors that occur during the transaction
             conn.rollback()
-    return "Success", 200
-
+            return "Something went wrong", 400
+    return f"{api_identifier}", 200

@@ -1,11 +1,8 @@
-import redis
 import pika
-import os
+import requests
 
-db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-                              port=int(os.environ['REDIS_PORT']),
-                              password=os.environ['REDIS_PASSWORD'],
-                              db=int(os.environ['REDIS_DB']))
+PAYMENT_URL = "http://payment-service:5000"
+
 
 # define channels
 connection = pika.BlockingConnection( #rabbitmq
@@ -15,7 +12,7 @@ channel = connection.channel()
 channel.queue_declare(queue="payment", durable=True)
 ## recieves messages from stock if not in order
 def add_credit(user_id: str, amount: int):
-    db.hincrby(f'user:{user_id}', 'credit', int(amount))
+    requests.post(f"{PAYMENT_URL}/add_funds/{user_id}/{amount}")
 
 def callback(ch, method, properties, body):
     params = body.decode().split(",")

@@ -81,7 +81,10 @@ services:
       - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
+      interval: 30s
+      timeout: 60s
       retries: 5
+      start_period: 80s
 
   payment-service:
     build: ./payment
@@ -129,12 +132,20 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      stock-service:
-        condition: service_started
-      stock-db:
-        condition: service_healthy
     volumes:
       - ./rabbitmq/consumers/stock:/HOME/FLASK-APP
+
+    stock-central-database:
+      build: ./central_stock
+      image: stock-central-database:latest
+      command: python consumer.py
+      env_file:
+        - env/stock_postgresql.env
+      depends_on:
+        rabbitmq:
+          condition: service_healthy
+      volumes:
+        - ./rabbitmq/consumers/stock:/HOME/FLASK-APP
 
 volumes:
   order_mongodb_data:
