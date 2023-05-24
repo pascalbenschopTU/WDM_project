@@ -1,10 +1,10 @@
-FROM python:3.11-slim-buster AS builder
+FROM python:3.11-slim-buster
 
-WORKDIR /home/flask-app
+WORKDIR /home/stock-consumer
 
-# gcc is only needed to install psycopg2.
-RUN apt-get update && \
-    apt-get install -y libpq-dev gcc
+COPY ./requirements.txt .
+
+RUN pip install -r requirements.txt
 
 COPY . .
 

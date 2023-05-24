@@ -1,6 +1,4 @@
 import pika
-import psycopg2
-import os
 import requests
 
 STOCK_URL = "http://stock-service:5000"
