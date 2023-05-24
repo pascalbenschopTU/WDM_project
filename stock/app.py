@@ -83,17 +83,18 @@ def decrement_stock_bulk(item_ids: List[str]):
             # Check if all stock counts are above 0.
             cursor.execute("""
                     SELECT COUNT(*)
-                    FROM your_table_name
+                    FROM stock
                     WHERE id = ANY(%s) AND stock <= 0
                     FOR UPDATE;
                 """, (item_ids,))
-            # returns ones that are not above 0
+            # if it's above 0, it isn't possible for all of them
             count = cursor.fetchone()[0]
             if count > 0:
+                cursor.commit()
                 return "Not enough stock", 404
             # If all amounts are above 0, decrement them by 1
             cursor.execute("""
-                UPDATE your_table_name
+                UPDATE stock
                 SET stock = stock - 1
                 WHERE id = ANY(%s) AND stock > 0;
             """, (item_ids,))
