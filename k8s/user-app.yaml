@@ -48,3 +48,9 @@ spec:
               value: "redis"
             - name: REDIS_DB
               value: "0"
+            - name: MONGODB_USERNAME
+              value: "user"
+            - name: MONGODB_PASSWORD
+              value: "password"
+            - name: MONGODB_HOSTNAME
+              value: "mongodb"

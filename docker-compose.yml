@@ -1,45 +1,144 @@
 version: "3"
 services:
+  rabbitmq:
+    image: rabbitmq:latest
+    restart: always
+    hostname: rabbitmqhost
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
   gateway:
     image: nginx:latest
     volumes:
       - ./gateway_nginx.conf:/etc/nginx/nginx.conf:ro
     ports:
       - "8000:80"
+    depends_on:
+      - order-service
+      - stock-service
+      - payment-service
 
   order-service:
     build: ./order
     image: order:latest
+    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
+    env_file:
+      - env/order_mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    env_file:
-      - env/order_redis.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      order-mongodb:
+        condition: service_started
 
-  order-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+  order-mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    container_name: order-mongodb
+    command: mongod --auth
+    ports:
+      - 27018:27018
+    volumes:
+      - order_mongodb_data:/data/db
+      - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    env_file:
+      - env/order_mongodb_init.env
 
   stock-service:
     build: ./stock
     image: stock:latest
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
-      - env/stock_redis.env
+      - env/stock_postgresql.env
+    environment:
+      - GATEWAY_URL=http://gateway:80
+    depends_on:
+      stock-db:
+        condition: service_healthy
 
   stock-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+    image: postgres:latest
+    restart: always
+    env_file:
+      - env/stock_postgresql.env
+    logging:
+      options:
+        max-size: 10m
+        max-file: "3"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./stock/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
+      - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
+      - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
 
   payment-service:
     build: ./payment
-    image: user:latest
+    image: payment:latest
     command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
     env_file:
-      - env/payment_redis.env
+      - env/payment_mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
+    depends_on:
+      payment-mongodb:
+        condition: service_started
 
-  payment-db:
-    image: redis:latest
-    command: redis-server --requirepass redis --maxmemory 512mb
+  payment-mongodb:
+    image: mongo:latest
+    restart: unless-stopped
+    container_name: payment-mongodb
+    command: mongod --auth
+    ports:
+      - 27017:27017
+    volumes:
+      - payment_mongodb_data:/data/db
+      - ./payment/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    env_file:
+      - env/payment_mongodb_init.env
+
+  payment-consumer:
+    build: ./rabbitmq/consumers/payment
+    image: payment-consumer:latest
+    command: python consumer.py
+    env_file:
+      - env/payment_mongodb.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./rabbitmq/consumers/payment:/HOME/FLASK-APP
+
+  stock-consumer:
+    build: ./rabbitmq/consumers/stock
+    image: stock-consumer:latest
+    command: python consumer.py
+    env_file:
+      - env/stock_postgresql.env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - ./rabbitmq/consumers/stock:/HOME/FLASK-APP
+
+volumes:
+  order_mongodb_data:
+    driver: local
+  payment_mongodb_data:
+    driver: local
+  stock_postgres_data:
+    driver: local
