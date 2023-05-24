@@ -61,7 +61,7 @@ services:
       - GATEWAY_URL=http://gateway:80
     depends_on:
       stock-db:
-        condition: service_started
+        condition: service_healthy
 
   stock-db:
     image: postgres:latest
@@ -79,12 +79,12 @@ services:
       - ./stock/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
       - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
       - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
-    # healthcheck:
-    #   test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
-    #   interval: 30s
-    #   timeout: 60s
-    #   retries: 5
-    #   start_period: 80s
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
+      interval: 30s
+      timeout: 60s
+      retries: 5
+      start_period: 80s
 
   payment-service:
     build: ./payment
