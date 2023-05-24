@@ -31,4 +31,4 @@ jobs:
         npm install -g newman
         docker compose up -d
         sleep 5
-        newman run test/WDM.postman.json
+        newman run -n 5 test/WDM.postman.json
