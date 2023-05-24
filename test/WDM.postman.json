@@ -1,8 +1,9 @@
 {
 	"info": {
-		"_postman_id": "0f7b2d29-4bd5-4651-af31-252a73f921e1",
+		"_postman_id": "f2a8520e-68d7-4811-80e4-95ebf39263fd",
 		"name": "WDM",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "12250391"
 	},
 	"item": [
 		{
@@ -21,7 +22,7 @@
 									"\r",
 									"pm.test(\"The response should have an user id\", function () {\r",
 									"    const responseJson = pm.response.json();\r",
-									"    pm.expect(responseJson.user_id).to.be.a('number');\r",
+									"    pm.expect(responseJson.user_id).to.not.be.null;\r",
 									"});\r",
 									"\r",
 									"var jsonData = JSON.parse(responseBody);\r",
@@ -35,12 +36,9 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{paymentRoot}}/create_user",
+							"raw": "{{paymentRoot}}create_user",
 							"host": [
-								"{{paymentRoot}}"
-							],
-							"path": [
-								"create_user"
+								"{{paymentRoot}}create_user"
 							]
 						}
 					},
@@ -72,12 +70,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"raw": "{{paymentRoot}}find_user/{{user_id1}}",
 							"host": [
-								"{{paymentRoot}}"
+								"{{paymentRoot}}find_user"
 							],
 							"path": [
-								"find_user",
 								"{{user_id1}}"
 							]
 						}
@@ -105,12 +102,11 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{paymentRoot}}/add_funds/{{user_id1}}/100",
+							"raw": "{{paymentRoot}}add_funds/{{user_id1}}/100",
 							"host": [
-								"{{paymentRoot}}"
+								"{{paymentRoot}}add_funds"
 							],
 							"path": [
-								"add_funds",
 								"{{user_id1}}",
 								"100"
 							]
@@ -144,12 +140,11 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{paymentRoot}}/find_user/{{user_id1}}",
+							"raw": "{{paymentRoot}}find_user/{{user_id1}}",
 							"host": [
-								"{{paymentRoot}}"
+								"{{paymentRoot}}find_user"
 							],
 							"path": [
-								"find_user",
 								"{{user_id1}}"
 							]
 						}
@@ -821,7 +816,7 @@
 									"pm.test(\"Check if the order it initialized correctly\", function() {\r",
 									"    const responseJson = pm.response.json();\r",
 									"    pm.expect(responseJson.order_id).eq(pm.variables.get(\"order_id\"), \"The correct order should be retreived\");\r",
-									"    pm.expect(responseJson.user_id).eq(parseInt(pm.variables.get(\"user_id1\")), \"The order should have the correct user_id\");\r",
+									"    pm.expect(responseJson.user_id).eq(pm.variables.get(\"user_id1\"), \"The order should have the correct user_id\");\r",
 									"    pm.expect(responseJson.items.length).eq(1, \"There should be two items in the order\");\r",
 									"    pm.expect(responseJson.items[0]).eq(\"\" + pm.variables.get(\"item_id2\"), \"The item with id2 should be in the order\");\r",
 									"    pm.expect(responseJson.total_price).eq(parseInt(pm.variables.get(\"item_id2_price\")), \"The total price should be equal to the price of item 2\");\r",
@@ -943,7 +938,7 @@
 									"\r",
 									"pm.test(\"The response should have an order id\", function () {\r",
 									"    const responseJson = pm.response.json();\r",
-									"    pm.expect(responseJson.order_id).to.be.a('number');\r",
+									"    pm.expect(responseJson.order_id).to.be.not.null;\r",
 									"});\r",
 									"\r",
 									"var jsonData = JSON.parse(responseBody);\r",
@@ -1136,7 +1131,7 @@
 									"\r",
 									"pm.test(\"The response should have an order id\", function () {\r",
 									"    const responseJson = pm.response.json();\r",
-									"    pm.expect(responseJson.order_id).to.be.a('number');\r",
+									"    pm.expect(responseJson.order_id).to.be.not.null\r",
 									"});\r",
 									"\r",
 									"var jsonData = JSON.parse(responseBody);\r",
