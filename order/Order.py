@@ -4,11 +4,11 @@ class Order:
     order_id: int
     user_id: int
     items: dict
-    total_price: int
+    total_price: float
     paid: bool
 
 
-    def __init__(self, order_id: int, user_id: int, items: dict = {}, total_price: int = 0, paid: bool = False):
+    def __init__(self, order_id: int, user_id: int, items: dict = {}, total_price: float = 0.0, paid: bool = False):
         self.order_id = order_id
         self.user_id = user_id
         self.items = items
@@ -16,7 +16,7 @@ class Order:
         self.paid = paid
 
     def create_empty(user_id: int):
-        return {'user_id': user_id, "items": {}, "total_price": 0, "paid": False}
+        return {'user_id': user_id, "items": {}, "total_price": 0.0, "paid": False}
     
     def to_mongo_input(self) -> dict:
         return {'user_id': self.user_id, 'items': self.items, 'total_price': self.total_price, 'paid': self.paid}

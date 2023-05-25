@@ -25,7 +25,6 @@ def create_user():
     return {'user_id': str(user_id)}
 
 
-
 @app.get('/find_user/<user_id>')
 def find_user(user_id: str):
     user = user_collection.find_one({'_id': ObjectId(user_id)})
@@ -35,10 +34,8 @@ def find_user(user_id: str):
 
 
 @app.post('/add_funds/<user_id>/<amount>')
-def add_credit(user_id: str, amount: int):
-    
-    amount = int(amount)
-
+def add_credit(user_id: str, amount: float):
+    amount = float(amount)
     if amount < 0:
         return {'Error': 'Amount must be positive'}, 400
     
@@ -54,12 +51,9 @@ def add_credit(user_id: str, amount: int):
     return {'Success': 'Credit is updated successfully'}, 200
 
 
-
 @app.post('/pay/<user_id>/<order_id>/<amount>')
-def remove_credit(user_id: str, order_id: str, amount: int):
-    
-    amount = int(amount)
-
+def remove_credit(user_id: str, order_id: str, amount: float):
+    amount = float(amount)
     order = paid_order_collection.find_one({'order_id': order_id})
 
     if order:
@@ -88,13 +82,13 @@ def cancel_payment(user_id: str, order_id: str):
     if order is None:
         return {'Error': 'Order not found'}, 404
 
-    amount = int(order['amount'])
+    amount = float(order['amount'])
     
     user = user_collection.find_one({'_id': ObjectId(user_id)})
     if user is None:
         return {'Error': 'User not found'}, 404
     
-    credit = int(user['credit'])
+    credit = float(user['credit'])
 
     newCredit = credit + amount
     result = user_collection.update_one(

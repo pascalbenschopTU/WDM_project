@@ -59,7 +59,6 @@ def remove_order(order_id):
     return f'Could not remove order with id {order_id}', 400
 
 
-
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
     # Find the order
@@ -82,10 +81,8 @@ def add_item(order_id, item_id):
     return f'Added item {item_id} to the order', 200
 
 
-
 @app.delete('/removeItem/<order_id>/<item_id>')
 def remove_item(order_id, item_id):
-    
     # Find the order
     order = get_order(order_id)
 
@@ -106,7 +103,6 @@ def remove_item(order_id, item_id):
 
 @app.get('/find/<order_id>')
 def find_order(order_id):
-
     order = get_order(order_id)
 
     # Check if we found an order with the given id
@@ -117,7 +113,6 @@ def find_order(order_id):
     response = order.to_response()
     response['items'] = list(order.items)
     return response, 200
-
 
 
 @app.post('/checkout/<order_id>')

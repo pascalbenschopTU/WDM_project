@@ -20,8 +20,8 @@ atexit.register(close_db_connection)
 
 
 @app.post('/item/create/<price>')
-def create_item(price: int):
-    price = int(price)
+def create_item(price: float):
+    price = float(price)
     if price < 0:
         return 'Price must be positive', 400
     
@@ -40,7 +40,7 @@ def find_item(item_id: str):
     item = cursor.fetchone()
     if None in item:
         return None, 404
-    item = {'item_id': int(item[0]), 'price': int(item[1]), 'stock': int(item[2])}
+    item = {'item_id': int(item[0]), 'price': float(item[1]), 'stock': int(item[2])}
     return item, 200
 
 
@@ -52,6 +52,7 @@ def add_stock(item_id: str, amount: int):
 @app.post('/subtract/<item_id>/<amount>')
 def remove_stock(item_id: str, amount: int):
     return update_stock(int(item_id), amount, subtract=True)
+
 
 def update_stock(item_id: str, amount: int, subtract: bool = False):
     item_id = int(item_id)
@@ -68,7 +69,3 @@ def update_stock(item_id: str, amount: int, subtract: bool = False):
     update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
     cursor.execute(update_stock, (new_stock, item_id))
     return "Success", 200
-    
-
-
-
