@@ -11,12 +11,11 @@ class TestMicroservices(unittest.TestCase):
         self.assertTrue('item_id' in item)
 
         item_id: str = item['item_id']
-
+        time.sleep(1)
         # Test /stock/find/<item_id>
         item: dict = tu.find_item(item_id)
         self.assertEqual(item['price'], 5)
         self.assertEqual(item['stock'], 0)
-
         # Test /stock/add/<item_id>/<number>
         add_stock_response = tu.add_stock(item_id, 50)
         self.assertTrue(200 <= int(add_stock_response) < 300)
