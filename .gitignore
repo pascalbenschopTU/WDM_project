@@ -5,3 +5,5 @@
 **/venv
 rabbitmq/**/log.txt
 postgres-data
+/local_dev
+/test/my-project-env
