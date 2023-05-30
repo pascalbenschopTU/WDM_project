@@ -44,7 +44,39 @@ but you can find any database you want in https://artifacthub.io/ and adapt the 
 
 ***Requirements:*** You need to have minikube (with ingress enabled) and helm installed on your machine.
 
-#### kubernetes cluster (managed k8s cluster in the cloud)
+## Minikube Windows set up:
+Go to a powershell terminal with admin rights and run the following commands:
+
+`.\deploy-charts-minicube.sh`
+
+`minikube start --driver=docker`
+
+Then you can type `minikube docker-env` to get the command to set the docker environment variables. Copy and paste the command and run it.
+Or you could directly run: 
+
+`& minikube -p minikube docker-env --shell powershell | Invoke-Expression`
+
+Then in a seperate terminal that points to the same directory as the docker-compose.yml file run:
+
+`docker-compose up --build`
+
+Then in the first terminal run:
+
+`minikube image ls --format table`
+
+To check that the order, payment and stock images are there.
+
+Then run:
+
+`kubectl apply -f .\k8s\`
+
+And check if the services are running with:
+
+`kubectl get pods`
+
+You should see READY 1/1 for every pod.
+
+### kubernetes cluster (managed k8s cluster in the cloud)
 
 Similarly to the `minikube` deployment but run the `deploy-charts-cluster.sh` in the helm step to also install an ingress to the cluster. 
 

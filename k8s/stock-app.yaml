@@ -28,6 +28,7 @@ spec:
       containers:
         - name: stock
           image: stock:latest
+          imagePullPolicy: Never
           resources:
             limits:
               memory: "1Gi"
@@ -48,3 +49,13 @@ spec:
               value: "redis"
             - name: REDIS_DB
               value: "0"
+            - name: POSTGRES_DB
+              value: "stock"
+            - name: POSTGRES_USER
+              value: "postgres"
+            - name: POSTGRES_PASSWORD
+              value: "postgres"
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_HOST
+              value: "stock-db"

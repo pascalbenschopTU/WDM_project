@@ -28,6 +28,7 @@ spec:
       containers:
         - name: order
           image: order:latest
+          imagePullPolicy: Never
           resources:
             limits:
               memory: "1Gi"
