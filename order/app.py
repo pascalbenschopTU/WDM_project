@@ -13,19 +13,23 @@ gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
 
-app.config["MONGO_URI"] = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:27017/{os.environ['MONGODB_DATABASE']}"
-mongo = PyMongo(app)
-db = mongo.db
+con0 = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:27017/{os.environ['MONGODB_DATABASE']}"
+con1 = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME1']}:27017/{os.environ['MONGODB_DATABASE']}"
+con2 = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME2']}:27017/{os.environ['MONGODB_DATABASE']}"
 
+orders_db = [
+    PyMongo(app, con0).db.orders,
+    PyMongo(app, con1).db.orders,
+    PyMongo(app, con2).db.orders
+]
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 channel.queue_declare(queue="payment", durable=True)
 
-
 def get_order(order_id: int) -> Order:
-    collection = db.orders
+    collection = orders_db[0]
     order = collection.find_one({'_id': ObjectId(order_id)})
     
     # Check if we found an order with the given id
@@ -36,12 +40,12 @@ def get_order(order_id: int) -> Order:
     return Order.from_mongo_output(order)
 
 def store_order(order: Order):
-    collection = db.orders
+    collection = orders_db[0]
     collection.update_one({'_id': ObjectId(order.order_id)}, {'$set': order.to_mongo_input()}, upsert=True)
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
-    collection = db.orders
+    collection = orders_db[0]
     order = collection.insert_one(Order.create_empty(user_id))
     order_id = order.inserted_id
 
@@ -49,7 +53,7 @@ def create_order(user_id):
 
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
-    collection = db.orders
+    collection = orders_db[0]
     result = collection.delete_one({'_id': ObjectId(order_id)})
 
     # Check if we deleted an order

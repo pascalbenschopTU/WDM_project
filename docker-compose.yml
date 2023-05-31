@@ -51,6 +51,33 @@ services:
     env_file:
       - env/order_mongodb_init.env
 
+  order-mongodb1:
+    image: mongo:latest
+    restart: unless-stopped
+    container_name: order-mongodb1
+    command: mongod --auth
+    ports:
+      - 27019:27019
+    volumes:
+      - order_mongodb_data1:/data/db
+      - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    env_file:
+      - env/order_mongodb_init.env
+
+  order-mongodb2:
+    image: mongo:latest
+    restart: unless-stopped
+    container_name: order-mongodb2
+    command: mongod --auth
+    ports:
+      - 27020:27020
+    volumes:
+      - order_mongodb_data2:/data/db
+      - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    env_file:
+      - env/order_mongodb_init.env
+
+
   stock-service:
     build: ./stock
     image: stock:latest
@@ -137,6 +164,10 @@ services:
 
 volumes:
   order_mongodb_data:
+    driver: local
+  order_mongodb_data1:
+    driver: local
+  order_mongodb_data2:
     driver: local
   payment_mongodb_data:
     driver: local
