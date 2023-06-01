@@ -13,7 +13,7 @@ jobs:
         run: |
           docker compose up -d
           sleep 5
-          sh payment_startup.sh
+          sh payment_database_setup.sh
           sleep 5
           python test/test_microservices.py
 
@@ -33,6 +33,6 @@ jobs:
           npm install -g newman
           docker compose up -d
           sleep 5
-          sh payment_startup.sh
+          sh payment_database_setup.sh
           sleep 5
           newman run test/WDM.postman.json
