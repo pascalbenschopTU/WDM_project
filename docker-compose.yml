@@ -95,22 +95,6 @@ services:
       - env/payment_mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
-    # depends_on:
-    #   payment-mongodb:
-    #     condition: service_started
-
-  # payment-mongodb:
-  #   image: mongo:latest
-  #   restart: unless-stopped
-  #   container_name: payment-mongodb
-  #   command: mongod --auth
-  #   ports:
-  #     - 27017:27017
-  #   volumes:
-  #     - payment_mongodb_data:/data/db
-  #     - ./payment/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-  #   env_file:
-  #     - env/payment_mongodb_init.env
 
   payment-consumer:
     build: ./rabbitmq/consumers/payment
