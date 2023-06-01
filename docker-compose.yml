@@ -81,11 +81,10 @@ services:
       - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
       - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d stock -U postgres"]
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+    timeout: 5s
+   retries: 5
 
   payment-service:
     build: ./payment
