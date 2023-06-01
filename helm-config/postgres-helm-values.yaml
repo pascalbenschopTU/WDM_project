@@ -1,0 +1,18 @@
+postgresql:
+  auth:
+    enablePostgresUser: true
+    username: postgres
+    password: postgres
+    database: stock
+    postgresPassword: postgres
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"
+
+replication:
+  enabled: true
+  mode: synchronous
+  synchronousStandbyPriority: "1"
+  numberOfStandbys: 2

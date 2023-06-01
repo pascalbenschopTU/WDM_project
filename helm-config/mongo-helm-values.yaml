@@ -1,0 +1,22 @@
+auth:
+  enabled: true
+  usernames: 
+    - user
+    - user
+  passwords: 
+    - password
+    - password
+  databases: 
+    - order_mongodb
+    - payment_mongodb
+
+replicaSet:
+  enabled: true
+  name: rs0
+  useHostnames: true
+  replicas: 1
+
+resources:
+  requests:
+    memory: "4Gi"
+    cpu: "2"

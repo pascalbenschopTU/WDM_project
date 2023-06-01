@@ -47,9 +47,9 @@ but you can find any database you want in https://artifacthub.io/ and adapt the 
 ## Minikube Windows set up:
 Go to a powershell terminal with admin rights and run the following commands:
 
-`.\deploy-charts-minicube.sh`
-
 `minikube start --driver=docker`
+
+`.\deploy-charts-minicube.sh`
 
 Then you can type `minikube docker-env` to get the command to set the docker environment variables. Copy and paste the command and run it.
 Or you could directly run: 
@@ -58,7 +58,7 @@ Or you could directly run:
 
 Then in a seperate terminal that points to the same directory as the docker-compose.yml file run:
 
-`docker-compose up --build`
+`docker-compose up -d --build`
 
 Then in the first terminal run:
 

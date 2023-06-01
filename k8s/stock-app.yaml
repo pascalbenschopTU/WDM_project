@@ -41,14 +41,6 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: REDIS_HOST
-              value: redis-master
-            - name: REDIS_PORT
-              value: '6379'
-            - name: REDIS_PASSWORD
-              value: "redis"
-            - name: REDIS_DB
-              value: "0"
             - name: POSTGRES_DB
               value: "stock"
             - name: POSTGRES_USER
@@ -58,4 +50,4 @@ spec:
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_HOST
-              value: "stock-db"
+              value: "postgres-postgresql"

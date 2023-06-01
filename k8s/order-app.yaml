@@ -45,17 +45,13 @@ spec:
               value: "user-service"
             - name: STOCK_SERVICE_URL
               value: "stock-service"
-            - name: REDIS_HOST
-              value: redis-master
-            - name: REDIS_PORT
-              value: '6379'
-            - name: REDIS_PASSWORD
-              value: "redis"
-            - name: REDIS_DB
-              value: "0"
             - name: MONGODB_USERNAME
               value: "user"
             - name: MONGODB_PASSWORD
               value: "password"
             - name: MONGODB_HOSTNAME
-              value: "mongodb"
+              value: "mongo-mongodb"
+            - name: MONGODB_DATABASE
+              value: "order_mongodb"
+            - name: GATEWAY_URL
+              value: "http://gateway:80"

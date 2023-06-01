@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update
-
-helm install -f helm-config/redis-helm-values.yaml redis bitnami/redis
-helm install -f helm-config/postgres-helm-values.yaml postgres bitnami/postgresql
-helm install -f helm-config/rabbitmq-helm-values.yaml rabbitmq bitnami/rabbitmq
-helm install -f helm-config/mongo-helm-values.yaml mongo bitnami/mongodb
+helm upgrade --install -f helm-config/postgres-helm-values.yaml postgres oci://registry-1.docker.io/bitnamicharts/postgresql
+helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq
+helm upgrade --install -f helm-config/mongo-helm-values.yaml mongo oci://registry-1.docker.io/bitnamicharts/mongodb
