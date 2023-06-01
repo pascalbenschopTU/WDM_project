@@ -19,7 +19,7 @@ class TestMicroservices(unittest.TestCase):
         # Test /stock/add/<item_id>/<number>
         add_stock_response = tu.add_stock(item_id, 50)
         self.assertTrue(200 <= int(add_stock_response) < 300)
-
+        time.sleep(1)
         stock_after_add: int = tu.find_item(item_id)['stock']
         self.assertEqual(stock_after_add, 50)
 
