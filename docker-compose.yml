@@ -59,6 +59,7 @@ services:
       - env/stock_postgresql.env
     environment:
       - GATEWAY_URL=http://gateway:80
+    restart: always
     depends_on:
       stock-db:
         condition: service_healthy
@@ -160,10 +161,10 @@ services:
     links:
       - router01
 
-## Config Servers
+  ## Config Servers
   configsvr01:
     image: mongo:6.0.1
-    container_name: mongo-config-01 
+    container_name: mongo-config-01
     command: mongod --port 27017 --configsvr --replSet rs-config-server
     volumes:
       - ./payment/scripts:/payment/scripts
@@ -178,7 +179,7 @@ services:
       - shard03-a
   configsvr02:
     image: mongo:6.0.1
-    container_name: mongo-config-02 
+    container_name: mongo-config-02
     command: mongod --port 27017 --configsvr --replSet rs-config-server
     volumes:
       - ./payment/scripts:/payment/scripts
@@ -191,7 +192,7 @@ services:
       - configsvr01
   configsvr03:
     image: mongo:6.0.1
-    container_name: mongo-config-03 
+    container_name: mongo-config-03
     command: mongod --port 27017 --configsvr --replSet rs-config-server
     volumes:
       - ./payment/scripts:/payment/scripts
@@ -203,9 +204,9 @@ services:
     links:
       - configsvr02
 
-## Shards
+  ## Shards
   ## Shards 01
-   
+
   shard01-a:
     image: mongo:6.0.1
     container_name: shard-01-node-a
@@ -328,42 +329,42 @@ volumes:
     driver: local
   mongodb_cluster_router01_db:
   mongodb_cluster_router01_config:
-  
+
   mongodb_cluster_router02_db:
   mongodb_cluster_router02_config:
-  
+
   mongodb_cluster_configsvr01_db:
   mongodb_cluster_configsvr01_config:
-  
+
   mongodb_cluster_configsvr02_db:
   mongodb_cluster_configsvr02_config:
-  
+
   mongodb_cluster_configsvr03_db:
   mongodb_cluster_configsvr03_config:
-  
+
   mongodb_cluster_shard01_a_db:
   mongodb_cluster_shard01_a_config:
-  
+
   mongodb_cluster_shard01_b_db:
   mongodb_cluster_shard01_b_config:
-  
+
   mongodb_cluster_shard01_c_db:
   mongodb_cluster_shard01_c_config:
-  
+
   mongodb_cluster_shard02_a_db:
   mongodb_cluster_shard02_a_config:
-  
+
   mongodb_cluster_shard02_b_db:
   mongodb_cluster_shard02_b_config:
-  
+
   mongodb_cluster_shard02_c_db:
   mongodb_cluster_shard02_c_config:
-  
+
   mongodb_cluster_shard03_a_db:
   mongodb_cluster_shard03_a_config:
-  
+
   mongodb_cluster_shard03_b_db:
   mongodb_cluster_shard03_b_config:
-  
+
   mongodb_cluster_shard03_c_db:
   mongodb_cluster_shard03_c_config:
