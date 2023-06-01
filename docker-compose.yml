@@ -83,8 +83,8 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready"]
       interval: 10s
-    timeout: 5s
-   retries: 5
+      timeout: 5s
+      retries: 5
 
   payment-service:
     build: ./payment
