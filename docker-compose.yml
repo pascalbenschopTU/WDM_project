@@ -131,6 +131,7 @@ services:
       - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_router01_db:/data/db
       - payment_mongodb_cluster_router01_config:/data/configdb
+
   payment_router02:
     image: mongo:6.0.1
     container_name: payment_router-02
@@ -159,10 +160,9 @@ services:
     restart: always
     links:
       - payment_shard01-a
-
       - payment_shard02-a
-
       - payment_shard03-a
+
   payment_configsvr02:
     image: mongo:6.0.1
     container_name: payment_mongo-config-02
@@ -176,6 +176,7 @@ services:
     restart: always
     links:
       - payment_configsvr01
+
   payment_configsvr03:
     image: mongo:6.0.1
     container_name: payment_mongo-config-03
