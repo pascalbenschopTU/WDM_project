@@ -21,3 +21,11 @@ class StockTransaction():
         self.transaction_id = transaction_id
         self.correlation_id = correlation_id
         self.statements = statements
+
+class SelectStatement():
+    transaction_id: str
+    item_id: str
+    
+    def __init__(self, transaction_id: str, item_id: int):
+        self.transaction_id = transaction_id
+        self.item_id = item_id

@@ -1,7 +1,7 @@
 version: "3"
 services:
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq-custom
     restart: always
     hostname: rabbitmqhost
     healthcheck:

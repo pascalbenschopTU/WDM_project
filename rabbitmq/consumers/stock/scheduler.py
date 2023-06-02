@@ -3,7 +3,7 @@ from sqlalchemy import create_engine, text
 import os
 import time
 import threading
-from stock_item import StockTransaction, Statement
+from stock_item import StockTransaction, Statement, SelectStatement
 import asyncio
 import sys
 import builtins
@@ -19,6 +19,8 @@ engine = create_engine(connection_string)
 subtract_transactions: list[(int,StockTransaction)] = []
 add_requests: list[(int,Statement)] = []
 ids: list[(int,str)] = []
+select_statements: list[(int,SelectStatement)] = []
+
 interval = 10
 window_start = 0
 timestamp_of_last_message = 0
@@ -54,24 +56,23 @@ def get_transaction_item_ids(queue_message: list[str]) -> list[str]:
         ids.append(id)
     return ids
 
-def get_items(ids: list[str]) -> dict[int]:
+def get_items(ids: list[str], db_connection) -> dict[int]:
 
     select_statement = text("SELECT * FROM stock WHERE id=ANY(:ids)")
     unique_ids = list(set(ids))
     items: dict[int] = {}
-    with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
-        rows = db_connection.execute(select_statement, {"ids": unique_ids})
-        for row in rows:
-            items[row[0]] = int(row[2])
-        db_connection.commit()
+    # with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
+    rows = db_connection.execute(select_statement, {"ids": unique_ids})
+    for row in rows:
+        items[row[0]] = int(row[2])
+    # db_connection.commit()
     return items
 
-def update_db(items: dict[int]):
-    with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
+def persist_transactions(items: dict[int], db_connection):
+    with engine.connect() as db_connection:
         for id in items.keys():
             update_statement = text("UPDATE stock SET stock = :stock WHERE id=:id;")
             db_connection.execute(update_statement, {"id": id, "stock": items[id]})
-        db_connection.commit()
     
 def execute_transactions(subtract_transactions: list[StockTransaction], items: dict[int], add_statements: list[Statement]):
     ## first we add to our stock
@@ -91,8 +92,7 @@ def execute_transactions(subtract_transactions: list[StockTransaction], items: d
         if all_successfull:
             items = items_clone
             send_response(subtract_transaction.transaction_id, subtract_transaction.correlation_id, "Success")
-
-    update_db(items)
+    return items
     
 def get_index(items, max_time):
     return 1
@@ -103,23 +103,25 @@ def get_index(items, max_time):
     
 def execute_window(current_window: int):
     global ids
-    index = get_index(ids, current_window + interval)
-    current_ids = [id[1] for id in ids[:index]]
-    ids = ids[index:]
+    id_index = get_index(ids, current_window + interval)
+    current_ids = [id[1] for id in ids[:id_index]]
+    ids = ids[id_index:]
         
     global subtract_transactions
-    index = get_index(subtract_transactions, current_window + interval)
-    current_subtract_transactions = [t[1] for t in subtract_transactions[:index]]
-    subtract_transactions = subtract_transactions[index:] 
+    subtract_index = get_index(subtract_transactions, current_window + interval)
+    current_subtract_transactions = [t[1] for t in subtract_transactions[:subtract_index]]
+    subtract_transactions = subtract_transactions[subtract_index:] 
     
     global add_requests
-    index = get_index(add_requests, current_window + interval)
-    current_add_requests = [t[1] for t in add_requests[:index]]
-    add_requests = add_requests[index:]
-    
-    items = get_items(current_ids)
+    add_index = get_index(add_requests, current_window + interval)
+    current_add_requests = [t[1] for t in add_requests[:add_index]]
+    add_requests = add_requests[add_index:]
+    with engine.connect() as db_connection:
+        items = get_items(current_ids, db_connection)
+        execute_transactions(current_subtract_transactions, items, current_add_requests)
+        persist_transactions(items, db_connection)
+        db_connection.commit()
         
-    execute_transactions(current_subtract_transactions, items, current_add_requests)
 
 def set_timestamps(timestamp: int):
     global timestamp_of_last_message
@@ -137,9 +139,27 @@ def set_timestamps(timestamp: int):
 def subtract_transaction_callback(ch, method, properties, body):
     params = body.decode().split(",") #first is timestamp, and then id, amount multiple times for each item they want to decrement.
     timestamp = int(params[0])
-    transaction = convert_to_transaction(properties.reply_to, properties.correlation_id ,params[1:])
+    transaction = convert_to_transaction(properties.reply_to, properties.correlation_id, params[1:])
     subtract_transactions.append((timestamp, transaction))
     transaction_ids = get_transaction_item_ids(params[1:])
+    # send_response(properties.reply_to, properties.correlation_id, properties.timestamp)
+    [ids.append((timestamp, id)) for id in transaction_ids]
+    set_timestamps(timestamp)
+    
+subtract = "subtract"
+channel.exchange_declare(exchange=subtract, exchange_type='fanout', durable=True)
+result = channel.queue_declare(queue='', durable=True)
+queue_name = result.method.queue
+channel.queue_bind(exchange=subtract, queue=queue_name)
+channel.basic_consume(queue=queue_name, on_message_callback=subtract_transaction_callback, auto_ack=True)
+
+def find_item(ch, method, properties, body):
+    params = body.decode().split(",") #first is timestamp, and then id, amount multiple times for each item they want to decrement.
+    timestamp = int(params[0])
+    transaction = convert_to_transaction(properties.reply_to, properties.correlation_id, params[1:])
+    subtract_transactions.append((timestamp, transaction))
+    transaction_ids = get_transaction_item_ids(params[1:])
+    # send_response(properties.reply_to, properties.correlation_id, properties.timestamp)
     [ids.append((timestamp, id)) for id in transaction_ids]
     set_timestamps(timestamp)
     
