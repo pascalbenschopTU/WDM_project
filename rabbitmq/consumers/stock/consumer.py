@@ -1,26 +1,33 @@
 import pika
-import requests
-
+from sqlalchemy import create_engine, text
+import os
 STOCK_URL = "http://stock-service:5000"
-
+big_db = "big_db_stock_requests"
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
-channel.queue_declare(queue="stock", durable=True)
+# connect to db
 
-def add_stock(item_id: str, amount: int):
-    requests.post(f"{STOCK_URL}/add/{item_id}/{amount}")
+connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
+engine = create_engine(connection_string)
 
-def callback(ch, method, properties, body):
-    params = body.decode().split(",")
-    with open('/HOME/FLASK-APP/log.txt', 'a') as f:
-    # Write some data to the file
-        f.write(body.decode() + "\n")
-    if params[0] == "inc":
-        for i in range(1, len(params)):
-            add_stock(params[i], 1)
+# new items queue
+def new_item_callback(ch, method, properties, body):
+    (id, price) = body.decode().split(",")
+    with open('/home/stock-app/log.txt', 'a') as f:
+        f.write("new_item " + id + "," + price + "\n")
+    with engine.connect() as db_connection:
+        statement = text("INSERT INTO stock (id, price, stock) VALUES (:id, :price, 0);")
+        db_connection.execute(statement, {"price": price, "id": id})
+        db_connection.commit()
+        ch.basic_ack(delivery_tag = method.delivery_tag)
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
+        
+new_items = "new_items"
+channel.exchange_declare(exchange=new_items, exchange_type='fanout', durable=True)
+result = channel.queue_declare(queue='', durable=True)
+queue_name = result.method.queue
+channel.queue_bind(exchange=new_items, queue=queue_name)
+channel.basic_consume(queue=queue_name, on_message_callback=new_item_callback)
 
-channel.basic_consume(queue="stock", on_message_callback=callback)
 channel.start_consuming()

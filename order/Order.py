@@ -14,6 +14,7 @@ class Order:
         self.items = items
         self.total_price = total_price
         self.paid = paid
+        
 
     def create_empty(user_id: int):
         return {'user_id': user_id, "items": {}, "total_price": 0, "paid": False}

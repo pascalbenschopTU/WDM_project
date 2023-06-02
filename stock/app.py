@@ -1,74 +1,73 @@
 import os
-import atexit
-
-from flask import Flask
-
+from flask import Flask, request
+from sqlalchemy import create_engine, text
+import pika
+import random
+import string
+import time
+import logging
+from RabbitMQClient import RabbitMQClient
 app = Flask("stock-service")
+logging.basicConfig(level=logging.INFO)
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
+channel = connection.channel()
+channel.exchange_declare(exchange='new_items', exchange_type='fanout', durable=True)
+channel.exchange_declare(exchange='subtract', exchange_type='fanout', durable=True)
+channel.exchange_declare(exchange='add', exchange_type='fanout', durable=True)
 
-import psycopg2
-
-db = psycopg2.connect(
-   database=os.environ['POSTGRES_DB'], user=os.environ['POSTGRES_USER'], password=os.environ['POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
-)
-    
-cursor = db.cursor()
-
-def close_db_connection():
-    db.close()
-
-atexit.register(close_db_connection)
-
+connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
+## We do reads directly, and we allow dirty reads.
+engine = create_engine(connection_string)
 
 @app.post('/item/create/<price>')
 def create_item(price: int):
     price = int(price)
-    if price < 0:
-        return 'Price must be positive', 400
-    
-    insert_item = "INSERT INTO stock (price, stock) VALUES (%s, %s) RETURNING id;"
-    cursor.execute(insert_item, (price, 0))
-    item_id: int = cursor.fetchone()[0]
-    item: dict[str, int] = {'item_id': item_id, 'price': price, 'stock': 0}
+    ## TODO fix this thing
+    characters = string.ascii_uppercase + string.digits
+    # Generate a random string of length 8
+    item_id = ''.join(random.choices(characters, k=8))
+    message = f"{item_id},{price}"
+    channel.basic_publish(exchange='new_items', routing_key='', body=message)
+    item = {'item_id': item_id, 'price': price, 'stock': 0}
     return item, 201
-
 
 @app.get('/find/<item_id>')
 def find_item(item_id: str):
-    item_id = int(item_id)
-    get_item = "SELECT * FROM stock WHERE id = %s;"
-    cursor.execute(get_item, (item_id,))
-    item = cursor.fetchone()
-    if None in item:
-        return None, 404
-    item = {'item_id': int(item[0]), 'price': int(item[1]), 'stock': int(item[2])}
-    return item, 200
+    with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
+        statement = text("SELECT * FROM stock WHERE id = :id")
+        result = db_connection.execute(statement, {"id": item_id})
+        for row in result:
+            item = {'item_id': row[0], 'price': row[1], 'stock': row[2]}
+            return item, 200
+    return "Couldn't find item", 404
 
-
-@app.post('/add/<item_id>/<amount>')
+@app.post('/add/<item_id>/<amount>')                                                                                                                                                                                                                                                                                                                  
 def add_stock(item_id: str, amount: int):
-    return update_stock(item_id, amount)
-
+    channel.basic_publish(exchange='add',
+        routing_key="",
+        body=f"{int(time.time())},{item_id},{amount}")
+    return "Success", 200
 
 @app.post('/subtract/<item_id>/<amount>')
 def remove_stock(item_id: str, amount: int):
-    return update_stock(int(item_id), amount, subtract=True)
+    client = RabbitMQClient(connection, "subtract")
+    response = client.call(f"{int(time.time())},{item_id},{amount}")    
+    return response, 200
+    # if response == "Success":
+    #     return "Success", 200
+    # return "Not enough stock", 400
 
-def update_stock(item_id: str, amount: int, subtract: bool = False):
-    item_id = int(item_id)
-    amount = int(amount)
-    if amount < 0:
-        return 'Amount must be positive', 400
+@app.post('/subtract_bulk')
+def decrement_stock_bulk():
+    data = request.get_json()
+    ids = data['ids']
+
+    client = RabbitMQClient(connection, "subtract")
+    message = f"{time.time()},{client.callback_queue},"
+    for id in ids:
+        message += f"{id},1,"
     
-    get_stock = "SELECT stock FROM stock WHERE id = %s;"
-    cursor.execute(get_stock, (item_id,))
-    stock = int(cursor.fetchone()[0])
-    new_stock = stock - amount if subtract else stock + amount
-    if new_stock < 0:
-        return 'Not enough stock', 400
-    update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
-    cursor.execute(update_stock, (new_stock, item_id))
-    return "Success", 200
-    
-
-
-
+    response = client.call(message[:-1])
+    if response == "Success":
+        return "Success", 200
+    return "Something went wrong", 400

@@ -126,33 +126,25 @@ def checkout(order_id):
 
     # Check if we found an order with the given id
     if order is None:
-        return f'Could not find an order with id {order_id}', 400
-    
-    reserved_items = []
-
+        return f'Could not find an order with id {order_id}', 400    
     try:
-        for item in order.items:
-            order_response = requests.post(f"{STOCK_URL}/subtract/{item}/1")
-            if not (200 <= order_response.status_code < 300):
-                raise Exception("Not enough stock") 
-            reserved_items.append(item)
-
-
+        stock_response = requests.post(f"{STOCK_URL}/subtract_bulk", json={"ids": list(order.items)})
+        if not (200 <= stock_response.status_code < 300):
+            raise Exception("Not enough stock")
+        ## todo rollback to the specific instance instance
         payment_response = requests.post(f"{PAYMENT_URL}/pay/{order.user_id}/{order_id}/{order.total_price}")
 
         if not (200 <= payment_response.status_code < 300):
-            raise Exception("Not enough credit") 
+            raise Exception("Not enough credit")
         order.paid = True
         store_order(order)
     except Exception as e:
         # Roll back the reserved items
-        message = "inc,"
-        for item in reserved_items:
-            message += item + ","
-        message = message[:-1]
-        channel.basic_publish(exchange='',
-                        routing_key='stock',
-                      body=message)
+        if stock_response and stock_response.status_code < 300:
+            for item in order.items:
+                channel.basic_publish(exchange='',
+                            routing_key="new_stock",
+                            body=f"{item},1")
         if hasattr(e, 'message'):
             return e.message, 400
         return str(e), 400

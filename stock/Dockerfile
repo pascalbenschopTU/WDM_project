@@ -1,6 +1,6 @@
 FROM python:3.11-slim-buster
 
-WORKDIR /home/flask-app
+WORKDIR /home/stock-consumer
 
 RUN apt-get update && \
     apt-get install -y libpq-dev gcc
