@@ -6,6 +6,7 @@ import random
 import string
 import time
 import logging
+import json
 from RabbitMQClient import RabbitMQClient
 app = Flask("stock-service")
 logging.basicConfig(level=logging.INFO)
@@ -33,13 +34,15 @@ def create_item(price: int):
 
 @app.get('/find/<item_id>')
 def find_item(item_id: str):
-    with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
-        statement = text("SELECT * FROM stock WHERE id = :id")
-        result = db_connection.execute(statement, {"id": item_id})
-        for row in result:
-            item = {'item_id': row[0], 'price': row[1], 'stock': row[2]}
-            return item, 200
-    return "Couldn't find item", 404
+    # try:
+    client = RabbitMQClient(connection, "select")
+    response = client.call(f"{item_id}")
+        # if response ==("stock") > 0:
+    #  return json.parse(response), 200
+    return response, 400
+    # except:
+    #     pass
+    # return "nO RESPONSE", 400
 
 @app.post('/add/<item_id>/<amount>')                                                                                                                                                                                                                                                                                                                  
 def add_stock(item_id: str, amount: int):
@@ -51,22 +54,20 @@ def add_stock(item_id: str, amount: int):
 @app.post('/subtract/<item_id>/<amount>')
 def remove_stock(item_id: str, amount: int):
     client = RabbitMQClient(connection, "subtract")
-    response = client.call(f"{int(time.time())},{item_id},{amount}")    
-    return response, 200
-    # if response == "Success":
-    #     return "Success", 200
-    # return "Not enough stock", 400
+    response = client.call(f"{item_id},{amount}")    
+    if response == "Success":
+        return response, 200
+    return response, 400
 
 @app.post('/subtract_bulk')
 def decrement_stock_bulk():
     data = request.get_json()
     ids = data['ids']
-
     client = RabbitMQClient(connection, "subtract")
-    message = f"{time.time()},{client.callback_queue},"
+    message = ""
     for id in ids:
         message += f"{id},1,"
-    
+    # removes the last,
     response = client.call(message[:-1])
     if response == "Success":
         return "Success", 200
