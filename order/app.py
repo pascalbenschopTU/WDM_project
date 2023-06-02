@@ -10,18 +10,16 @@ from Order import Order
 
 STOCK_URL = "http://stock-service:5000"
 PAYMENT_URL = "http://payment-service:5000"
-gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
 
-username = os.environ['MONGODB_USERNAME']
-password = os.environ['MONGODB_PASSWORD']
 hostname = os.environ['MONGODB_HOSTNAME']
 database = os.environ['MONGODB_DATABASE']
+gateway_url = os.environ['GATEWAY_URL']
 
-# app.config["MONGO_URI"] = f"mongodb://{username}:{password}@{hostname}:27017/{database}"
-app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname}:27118/{database}"
-#app.config["MONGO_URI"] = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:28118/{os.environ['MONGODB_DATABASE']}"
+
+app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname}:27017/{database}"
+
 mongo = PyMongo(app)
 db = mongo.db
 
