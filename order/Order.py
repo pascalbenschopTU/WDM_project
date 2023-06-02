@@ -1,4 +1,5 @@
 import json
+import sys
 
 class Order:
     order_id: int
@@ -19,6 +20,7 @@ class Order:
         return {'user_id': user_id, "items": {}, "total_price": 0, "paid": False}
     
     def to_mongo_input(self) -> dict:
+        print(self, file=sys.stderr)
         return {'user_id': self.user_id, 'items': self.items, 'total_price': self.total_price, 'paid': self.paid}
     
     def to_response(self) -> dict:

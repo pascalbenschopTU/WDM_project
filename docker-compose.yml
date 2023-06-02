@@ -34,21 +34,199 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      order-mongodb:
-        condition: service_started
-
-  order-mongodb:
-    image: mongo:latest
-    restart: unless-stopped
-    container_name: order-mongodb
-    command: mongod --auth
+  ## Order Router
+  order_router01:
+    image: mongo:6.0.1
+    container_name: order_router-01
+    command: mongos --port 27017 --configdb rs-config-server/order_configserver01:27017,order_configserver02:27017,order_configserver03:27017 --bind_ip_all
     ports:
-      - 27018:27018
+      - 28017:27017
+    restart: always
     volumes:
-      - order_mongodb_data:/data/db
-      - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    env_file:
-      - env/order_mongodb_init.env
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_router01_db:/data/db
+      - mongodb_cluster_order_router01_config:/data/configdb
+
+  order_router02:
+    image: mongo:6.0.1
+    container_name: order_router-02
+    command: mongos --port 27017 --configdb rs-config-server/order_configserver01:27017,order_configserver02:27017,order_configserver03:27017 --bind_ip_all
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_router02_db:/data/db
+      - mongodb_cluster_order_router02_config:/data/configdb
+    ports:
+      - 28118:27017
+    restart: always
+    links:
+      - order_router01
+
+  ## Config Servers
+  order_configserver01:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-01
+    command: mongod --port 27017 --configsvr --replSet rs-config-server
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_configserver01_db:/data/db
+      - mongodb_cluster_order_configserver01_config:/data/configdb
+    ports:
+      - 28119:27017
+    restart: always
+    links:
+      - order_shard01-a
+      - order_shard02-a
+      - order_shard03-a
+
+  order_configserver02:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-02
+    command: mongod --port 27017 --configsvr  --replSet rs-config-server
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_configserver02_db:/data/db
+      - mongodb_cluster_order_configserver02_config:/data/configdb
+    ports:
+      - 28120:27017
+    restart: always
+    links:
+      - order_configserver01
+
+  order_configserver03:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-03
+    command: mongod --port 27017 --configsvr  --replSet rs-config-server
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_configserver03_db:/data/db
+      - mongodb_cluster_order_configserver03_config:/data/configdb
+    ports:
+      - 28121:27017
+    restart: always
+    links:
+      - order_configserver02
+
+  ## order_shards
+  ## order_shards 01
+
+  order_shard01-a:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard01_a_db:/data/db
+      - mongodb_cluster_order_shard01_a_config:/data/configdb
+    ports:
+      - 28122:27017
+    restart: always
+    links:
+      - order_shard01-b
+      - order_shard01-c
+
+  order_shard01-b:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard01_b_db:/data/db
+      - mongodb_cluster_order_shard01_b_config:/data/configdb
+    ports:
+      - 28123:27017
+    restart: always
+
+  order_shard01-c:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard01_c_db:/data/db
+      - mongodb_cluster_order_shard01_c_config:/data/configdb
+    ports:
+      - 28124:27017
+    restart: always
+
+  ## order_shards 02
+  order_shard02-a:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard02_a_db:/data/db
+      - mongodb_cluster_order_shard02_a_config:/data/configdb
+    ports:
+      - 28125:27017
+    restart: always
+    links:
+      - order_shard02-b
+      - order_shard02-c
+
+  order_shard02-b:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard02_b_db:/data/db
+      - mongodb_cluster_order_shard02_b_config:/data/configdb
+    ports:
+      - 28126:27017
+    restart: always
+
+  order_shard02-c:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard02_c_db:/data/db
+      - mongodb_cluster_order_shard02_c_config:/data/configdb
+    ports:
+      - 28127:27017
+    restart: always
+
+  ## order_shards 03
+  order_shard03-a:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard03_a_db:/data/db
+      - mongodb_cluster_order_shard03_a_config:/data/configdb
+    ports:
+      - 28128:27017
+    restart: always
+    links:
+      - order_shard03-b
+      - order_shard03-c
+
+  order_shard03-b:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard03_b_db:/data/db
+      - mongodb_cluster_order_shard03_b_config:/data/configdb
+    ports:
+      - 28129:27017
+    restart: always
+
+  order_shard03-c:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard03_c_db:/data/db
+      - mongodb_cluster_order_shard03_c_config:/data/configdb
+    ports:
+      - 28130:27017
+    restart: always
 
   stock-service:
     build: ./stock
@@ -118,3 +296,45 @@ volumes:
     driver: local
   stock_postgres_data:
     driver: local
+
+  mongodb_cluster_order_router01_db:
+  mongodb_cluster_order_router01_config:
+
+  mongodb_cluster_order_router02_db:
+  mongodb_cluster_order_router02_config:
+
+  mongodb_cluster_order_configserver01_db:
+  mongodb_cluster_order_configserver01_config:
+
+  mongodb_cluster_order_configserver02_db:
+  mongodb_cluster_order_configserver02_config:
+
+  mongodb_cluster_order_configserver03_db:
+  mongodb_cluster_order_configserver03_config:
+
+  mongodb_cluster_order_shard01_a_db:
+  mongodb_cluster_order_shard01_a_config:
+
+  mongodb_cluster_order_shard01_b_db:
+  mongodb_cluster_order_shard01_b_config:
+
+  mongodb_cluster_order_shard01_c_db:
+  mongodb_cluster_order_shard01_c_config:
+
+  mongodb_cluster_order_shard02_a_db:
+  mongodb_cluster_order_shard02_a_config:
+
+  mongodb_cluster_order_shard02_b_db:
+  mongodb_cluster_order_shard02_b_config:
+
+  mongodb_cluster_order_shard02_c_db:
+  mongodb_cluster_order_shard02_c_config:
+
+  mongodb_cluster_order_shard03_a_db:
+  mongodb_cluster_order_shard03_a_config:
+
+  mongodb_cluster_order_shard03_b_db:
+  mongodb_cluster_order_shard03_b_config:
+
+  mongodb_cluster_order_shard03_c_db:
+  mongodb_cluster_order_shard03_c_config:

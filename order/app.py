@@ -1,4 +1,5 @@
 import os
+import sys
 
 from flask import Flask
 from flask_pymongo import PyMongo, ObjectId
@@ -13,7 +14,14 @@ gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
 
-app.config["MONGO_URI"] = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:27017/{os.environ['MONGODB_DATABASE']}"
+username = os.environ['MONGODB_USERNAME']
+password = os.environ['MONGODB_PASSWORD']
+hostname = os.environ['MONGODB_HOSTNAME']
+database = os.environ['MONGODB_DATABASE']
+
+# app.config["MONGO_URI"] = f"mongodb://{username}:{password}@{hostname}:27017/{database}"
+app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname}:27118/{database}"
+#app.config["MONGO_URI"] = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:28118/{os.environ['MONGODB_DATABASE']}"
 mongo = PyMongo(app)
 db = mongo.db
 
@@ -37,12 +45,18 @@ def get_order(order_id: int) -> Order:
 
 def store_order(order: Order):
     collection = db.orders
-    collection.update_one({'_id': ObjectId(order.order_id)}, {'$set': order.to_mongo_input()}, upsert=True)
+    collection.update_one(
+        {'_id': ObjectId(order.order_id)}, 
+        {'$set': order.to_mongo_input()}
+    )
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
+    print(user_id, file=sys.stderr)
     collection = db.orders
+    print(collection, file=sys.stderr)
     order = collection.insert_one(Order.create_empty(user_id))
+    print(order, file=sys.stderr)
     order_id = order.inserted_id
 
     return {"order_id": str(order_id)}, 200
