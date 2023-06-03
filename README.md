@@ -56,7 +56,7 @@ Or you could directly run:
 
 `& minikube -p minikube docker-env --shell powershell | Invoke-Expression`
 
-Then in a seperate terminal that points to the same directory as the docker-compose.yml file run:
+Then in the same terminal that points to the same directory as the docker-compose.yml file run:
 
 `docker-compose up -d --build`
 
