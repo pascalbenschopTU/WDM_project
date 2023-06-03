@@ -44,9 +44,9 @@ spec:
             - name: POSTGRES_DB
               value: "stock"
             - name: POSTGRES_USER
-              value: "postgres"
+              value: "postgresUser"
             - name: POSTGRES_PASSWORD
-              value: "postgres"
+              value: "postgresPassword"
             - name: POSTGRES_PORT
               value: "5432"
             - name: POSTGRES_HOST

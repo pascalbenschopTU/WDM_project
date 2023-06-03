@@ -1,10 +1,11 @@
-postgresql:
-  auth:
-    enablePostgresUser: true
-    username: postgres
-    password: postgres
-    database: stock
-    postgresPassword: postgres
+global:
+  postgresql:
+    auth:
+      postgresPassword: "postgresPassword"
+      username: "postgresUser"
+      password: "postgresPassword"
+      database: "stock"
+
 
 resources:
   requests:
