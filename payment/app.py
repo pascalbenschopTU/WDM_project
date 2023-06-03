@@ -5,16 +5,17 @@ from flask_pymongo import PyMongo, ObjectId
 
 app = Flask('payment-service')
 
-username = os.environ['MONGODB_USERNAME']
-password = os.environ['MONGODB_PASSWORD']
 hostname = os.environ['MONGODB_HOSTNAME']
+hostname2 = os.environ['MONGODB_HOSTNAME_2']
 database = os.environ['MONGODB_DATABASE']
 gateway_url = os.environ['GATEWAY_URL']
 
-app.config["MONGO_URI"] = f"mongodb://{username}:{password}@{hostname}:27017/{database}"
+app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname2}:27017/{database}"
+
 
 mongo = PyMongo(app)
 db = mongo.db
+
 user_collection = db.users
 paid_order_collection = db.paid_orders
 
@@ -114,4 +115,3 @@ def cancel_payment(user_id: str, order_id: str):
 def payment_status(user_id: str, order_id: str):
     order = paid_order_collection.find_one({'order_id': order_id})
     return order is not None
-
