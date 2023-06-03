@@ -1,5 +1,4 @@
 import os
-import sys
 
 from flask import Flask
 from flask_pymongo import PyMongo, ObjectId
@@ -22,6 +21,7 @@ app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname}:27017/{databas
 
 mongo = PyMongo(app)
 db = mongo.db
+orders = db.orders
 
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
@@ -31,8 +31,7 @@ channel.queue_declare(queue="payment", durable=True)
 
 
 def get_order(order_id: int) -> Order:
-    collection = db.orders
-    order = collection.find_one({'_id': ObjectId(order_id)})
+    order = orders.find_one({'_id': ObjectId(order_id)})
     
     # Check if we found an order with the given id
     if order is None or None in order:
@@ -42,27 +41,20 @@ def get_order(order_id: int) -> Order:
     return Order.from_mongo_output(order)
 
 def store_order(order: Order):
-    collection = db.orders
-    collection.update_one(
+    orders.update_one(
         {'_id': ObjectId(order.order_id)}, 
         {'$set': order.to_mongo_input()}
     )
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
-    print(user_id, file=sys.stderr)
-    collection = db.orders
-    print(collection, file=sys.stderr)
-    order = collection.insert_one(Order.create_empty(user_id))
-    print(order, file=sys.stderr)
+    order = orders.insert_one(Order.create_empty(user_id))
     order_id = order.inserted_id
-
     return {"order_id": str(order_id)}, 200
 
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
-    collection = db.orders
-    result = collection.delete_one({'_id': ObjectId(order_id)})
+    result = orders.delete_one({'_id': ObjectId(order_id)})
 
     # Check if we deleted an order
     if result.deleted_count == 1:

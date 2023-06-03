@@ -39,7 +39,7 @@ services:
   order_router01:
     image: mongo:6.0.1
     container_name: order_router-01
-    command: mongos --port 27017 --configdb rs-config-server/order_configserver01:27017,order_configserver02:27017,order_configserver03:27017 --bind_ip_all
+    command: mongos --port 27017 --configdb order_rs-config-server/order_configserver01:27017,order_configserver02:27017,order_configserver03:27017 --bind_ip_all
     ports:
       - 28017:27017
     restart: always
