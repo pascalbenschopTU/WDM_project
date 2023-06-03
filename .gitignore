@@ -3,3 +3,6 @@
 .vscode
 **/__pycache__
 **/venv
+rabbitmq/**/log.txt
+postgres-data
+**/node_modules

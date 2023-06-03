@@ -1,6 +1,6 @@
 rs.initiate(
     { 
-        _id: "rs-config-server", 
+        _id: "order_rs-config-server", 
         configsvr: true, 
         version: 1, 
         members: [
