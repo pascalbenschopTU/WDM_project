@@ -1,0 +1,11 @@
+apiVersion: v1
+data:
+  MONGODB_DATABASE: payment_mongodb
+  MONGODB_HOSTNAME: payment_router01
+  MONGODB_HOSTNAME_2: payment_router02
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    io.kompose.service: payment-service-env-payment-mongodb-env
+  name: env-payment-mongodb-env

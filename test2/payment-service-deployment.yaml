@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o test2
+    kompose.version: 1.28.0 (c4137012e)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: payment-service
+  name: payment-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: payment-service
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o test2
+        kompose.version: 1.28.0 (c4137012e)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/wdm-default: "true"
+        io.kompose.service: payment-service
+    spec:
+      containers:
+        - args:
+            - gunicorn
+            - -b
+            - 0.0.0.0:5000
+            - app:app
+            - -w
+            - "1"
+            - --timeout
+            - "10"
+          env:
+            - name: GATEWAY_URL
+              value: http://gateway:80
+            - name: MONGODB_DATABASE
+              valueFrom:
+                configMapKeyRef:
+                  key: MONGODB_DATABASE
+                  name: env-payment-mongodb-env
+            - name: MONGODB_HOSTNAME
+              valueFrom:
+                configMapKeyRef:
+                  key: MONGODB_HOSTNAME
+                  name: env-payment-mongodb-env
+            - name: MONGODB_HOSTNAME_2
+              valueFrom:
+                configMapKeyRef:
+                  key: MONGODB_HOSTNAME_2
+                  name: env-payment-mongodb-env
+          image: ghcr.io/leonkempen/wdm-payment:latest
+          name: payment-service
+          resources: {}
+      restartPolicy: Always
+status: {}
