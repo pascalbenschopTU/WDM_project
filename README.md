@@ -27,9 +27,14 @@ First run `docker-compose up --build` to get all the web services running, then 
 
 #### minikube (local k8s cluster)
 
+- install minikube
+- add helm to path
+
 Run the following commands to set up a local cluster:
 
 `minikube start`
+
+`helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx` (first time)
 
 `helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx`
 `helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq`
