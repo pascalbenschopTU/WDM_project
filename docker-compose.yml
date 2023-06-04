@@ -85,13 +85,19 @@ services:
       - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
     ports:
       - "5432:5432"
+
+  stock-db-redis:
+    image: redis:latest
+    command: redis-server --requirepass redis --maxmemory 512mb
+
+
   
   stock-consumer:
     build: ./rabbitmq/consumers/stock
     image: stock-consumer:latest
     command: python scheduler.py
     env_file:
-      - env/stock_postgresql.env
+      - env/stock_redis.env
     depends_on:
       rabbitmq:
         condition: service_healthy

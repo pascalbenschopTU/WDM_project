@@ -9,15 +9,43 @@ import threading
 from aio_pika import Message, connect, ExchangeType
 from aioamqp.channel import Channel
 from aio_pika.abc import AbstractIncomingMessage
+import sqlalchemy.pool as pool
+import psycopg2
+import redis
+from aioredlock import Aioredlock, LockError, Sentinel
+from sqlalchemy.orm import sessionmaker
+
+# def getconn():
+#     c = psycopg2.connect(user="ed", host="127.0.0.1", dbname="test")
+#     return c
+# mypool = pool.QueuePool(getconn, max_overflow=10, pool_size=5)
+        #setup database
+# connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
+# engine = create_engine(connection_string)
 
 operations_queue = asyncio.Queue()
 global_channel = None        
-        #setup database
-connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
-engine = create_engine(connection_string)
 
 
-# operations: list[Union[SelectStatement, AddStatement, SubtractTansaction]]  = []
+
+# db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
+#                               port=int(os.environ['REDIS_PORT']),
+#                               password=os.environ['REDIS_PASSWORD'],
+#                               db=int(os.environ['REDIS_DB']))
+host = os.environ['REDIS_HOST']
+port = port=int(os.environ['REDIS_PORT'])
+password = password=os.environ['REDIS_PASSWORD']
+db = db=int(os.environ['REDIS_DB'])
+# Define a list of connections to your Redis instances:
+redis_instances = [
+  (host, port),
+  {'host': host, 'port': port, 'db': db},
+  f'redis://{host}:{port}/2',
+  Sentinel((host, 26379), master='leader', db=3),
+  Sentinel(f'redis://{host}:26379/4?master=leader&encoding=utf-8'),
+  Sentinel(f'rediss://:{password}@{host}:26379/5?master=leader&encoding=utf-8&ssl_cert_reqs=CERT_NONE'),
+]
+
 
 def convert_to_transaction(queue_identifier: str, correlation_id: str, csv_items: list[str]) -> SubtractTansaction:
     statements = []
@@ -35,13 +63,17 @@ def get_items(ids: list[str], db_connection) -> dict[str, StockItem]:
         items[row[0]] = StockItem(row[0], int(row[1]), int(row[2]))
     return items
 
-def persist_transactions(items: list[StockItem], db_connection):
-    with engine.connect() as db_connection:
-        for item in items:
-            update_statement = text("UPDATE stock SET stock = :stock WHERE id=:id;")
-            db_connection.execute(update_statement, {"id": id, "stock": item.stock})
+def persist_transactions(items: list[StockItem], cursor):
+    params = []
+    for item in items:
+        params.add((item.stock, item.id))
+    cursor.fast_executemany = True
+    cursor.executemany("UPDATE stock SET stock=? WHERE id=?", params)
+    # update_statement = text("UPDATE stock SET stock = :stock WHERE id=:id;")
+    # db_connection.execute(update_statement, {"id": id, "stock": item.stock})
     
-async def execute_transactions(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]], items: dict[str, StockItem]):
+async def execute_transactions(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]], items_arg: dict[str, StockItem]):
+    items = items_arg.copy()
     for transaction in transactions:
         if isinstance(transaction, SelectStatement):
             item = items[transaction.item_id]
@@ -50,13 +82,13 @@ async def execute_transactions(transactions: list[Union[SelectStatement, AddStat
                 message = item.convert_to_json_string()
             await send_response(transaction.reply_to, transaction.correlation_id, message) #message
         elif isinstance(transaction, AddStatement):
-            items[transaction.item_id] += transaction.amount
+            items[transaction.item_id].stock += transaction.amount
         elif isinstance(transaction, SubtractTansaction):
             items_clone = items
             all_successfull = True
             for statement in transaction.statements:
-                if items[statement.item_id] >= statement.amount:
-                    items_clone[statement.item_id] = items[statement.item_id] - statement.amount
+                if items[statement.item_id].stock >= statement.amount:
+                    items_clone[statement.item_id].stock -= statement.amount
                 else:
                     await send_response(transaction.reply_to, transaction.correlation_id, f"Not enough stock of {statement.item_id}")
                     all_successfull = False
@@ -67,9 +99,6 @@ async def execute_transactions(transactions: list[Union[SelectStatement, AddStat
     return items
     
 async def execute_window(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]]) -> None:
-    # global operations
-    # transactions = operations       
-    # await send_response(str(transactions[0].reply_to), str(transactions[0].correlation_id), str(transactions[0].item_id))
     ids = set()
     for entry in transactions:
         if isinstance(entry, SubtractTansaction):
@@ -78,15 +107,17 @@ async def execute_window(transactions: list[Union[SelectStatement, AddStatement,
         else:
             ids.add(entry.item_id)
     ids = list(ids)
-    with engine.connect() as db_connection:
-        items = get_items(ids, db_connection)
+    with sessionmaker(bind= engine) as session:
+        cursor = session.cursor()
+
+        items = get_items(ids, cursor)
         updated_items = await execute_transactions(transactions, items)
         to_persist = []
-        for key, item in items.items():
-            if item.stock != updated_items[key].stock:
+        for key, updated_item in updated_items.items():
+            if updated_item.stock != items[key].stock:
                 to_persist.append(updated_items[key])
-        persist_transactions(to_persist, db_connection)
-        db_connection.commit()
+        persist_transactions(to_persist, cursor)
+        cursor.commit()
 
 async def read_array_periodically(interval):
     while True:
@@ -99,7 +130,6 @@ async def read_array_periodically(interval):
             await execute_window(transactions)
 
         await asyncio.sleep(interval)
-
 
 def start_reading_loop():
     asyncio.run(read_array_periodically(0.01))
@@ -115,40 +145,28 @@ async def select_callback(message: AbstractIncomingMessage):
         # only item_id is sent
         select_statement = SelectStatement(message.body.decode(), message.reply_to, message.correlation_id)
         await operations_queue.put(select_statement)
-        # await send_response(message.reply_to, message.correlation_id, message.body)
 
-async def new_item_callback(ch, body, envelope, properties):
-            (id, price) = body.decode().split(",")
-            with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
-                statement = text("INSERT INTO stock (id, price, stock) VALUES (:id, :price, 0);")
-                db_connection.execute(statement, {"price": price, "id": id})
-                db_connection.commit()
-                await ch.basic_ack(delivery_tag = envelope.delivery_tag)
+async def new_item_callback(message: AbstractIncomingMessage):
+    async with message.process():
+        (id, price) = message.body.decode().split(",")
+        with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
+            statement = text("INSERT INTO stock (id, price, stock) VALUES (:id, :price, 0);")
+            db_connection.execute(statement, {"price": price, "id": id})
+            db_connection.commit()
+            await message.ack
 
-async def add_stock_callback(ch, body, envelope, properties):
-            (item_id, amount) = body.decode().split(",")
-            add_statement = AddStatement(item_id, amount, properties.reply_to, properties.correlation_id)
-            # operations.append(add_statement)
-            await operations_queue.put(add_statement)
+async def add_stock_callback(message: AbstractIncomingMessage):
+    async with message.process():
+        (item_id, amount) = message.body.decode().split(",")
+        add_statement = AddStatement(item_id, amount, message.reply_to, message.correlation_id)
+        # operations.append(add_statement)
+        await operations_queue.put(add_statement)
             
-async def subtract_transaction_callback(ch, body, envelope, properties):
-            params = body.decode().split(",") #It's item_id, amount item_id amount.... yadada
-            transaction = convert_to_transaction(properties.reply_to, properties.correlation_id, params)
-            # operations.append(transaction)
-            await operations_queue.put(transaction)
-
-
-
-
-# async def send_response(reply_to, correlation_id, message):
-#     global channel
-#     rabbitmq_message = Message(
-#             message, correlation_id=correlation_id
-#         )
-#     await channel.default_exchange.publish(
-#             rabbitmq_message,
-#             routing_key=reply_to,
-#         )
+async def subtract_transaction_callback(message: AbstractIncomingMessage):
+    async with message.process():
+        params = message.body.decode().split(",") #It's item_id, amount item_id amount.... yadada
+        transaction = convert_to_transaction(message.reply_to, message.correlation_id, params)
+        await operations_queue.put(transaction)
 
 async def main() -> None:
     connection = await connect(f"amqp://guest:guest@rabbitmq/")
@@ -166,13 +184,13 @@ async def main() -> None:
         subtract_exchange = await channel.declare_exchange(subtract, ExchangeType.FANOUT, durable=True)
         queue = await channel.declare_queue(exclusive=True)
         await queue.bind(subtract_exchange)
-        await queue.consume(subtract_transaction_callback, no_ack=True)
+        await queue.consume(subtract_transaction_callback)
             
         add = "add"
         add_exchange = await channel.declare_exchange(add, ExchangeType.FANOUT, durable=True)
         queue = await channel.declare_queue(exclusive=True)
         await queue.bind(add_exchange)
-        await queue.consume(add_stock_callback, no_ack=True)
+        await queue.consume(add_stock_callback)
                 
         new_items = "new_items"
         new_item_exchange = await channel.declare_exchange(new_items, ExchangeType.FANOUT, durable=True)
@@ -186,61 +204,3 @@ async def main() -> None:
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     asyncio.run(main())
-    
-    
-    
-# def select_callback(ch, method, properties, body):
-#     # only item_id is sent
-#     select_statement = SelectStatement(body.decode(), properties.reply_to, properties.correlation_id)
-#     operations.append(select_statement)
-    
-#     # send_response(operations[0].reply_to, operations[0].correlation_id, "hello")
-    
-# select = "select"
-# channel.exchange_declare(exchange=select, exchange_type='fanout', durable=True)
-# result = channel.queue_declare(queue='', durable=True)
-# queue_name = result.method.queue
-# channel.queue_bind(exchange=select, queue=queue_name)
-# channel.basic_consume(queue=queue_name, on_message_callback=select_callback, auto_ack=True)
-
-# def subtract_transaction_callback(ch, method, properties, body):
-#     params = body.decode().split(",") #It's item_id, amount item_id amount.... yadada
-#     transaction = convert_to_transaction(properties.reply_to, properties.correlation_id, params)
-#     operations.append(transaction)
-#     operations_queue.put(transaction)
-    
-# subtract = "subtract"
-# channel.exchange_declare(exchange=subtract, exchange_type='fanout', durable=True)
-# result = channel.queue_declare(queue='', durable=True)
-# queue_name = result.method.queue
-# channel.queue_bind(exchange=subtract, queue=queue_name)
-# channel.basic_consume(queue=queue_name, on_message_callback=subtract_transaction_callback, auto_ack=True)
-    
-# def add_stock_callback(ch, method, properties, body):
-#     (item_id, amount) = body.decode().split(",")
-#     add_statement = AddStatement(item_id, amount, properties.reply_to, properties.correlation_id)
-#     operations.append(add_statement)
-#     operations_queue.put(add_statement)
-
-# add = "add"
-# channel.exchange_declare(exchange=add, exchange_type='fanout', durable=True)
-# result = channel.queue_declare(queue='', durable=True)
-# queue_name = result.method.queue
-# channel.queue_bind(exchange=add, queue=queue_name)
-# channel.basic_consume(queue=queue_name, on_message_callback=add_stock_callback, auto_ack=True)
-
-# # new items queue
-# def new_item_callback(ch, method, properties, body):
-#     (id, price) = body.decode().split(",")
-#     with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
-#         statement = text("INSERT INTO stock (id, price, stock) VALUES (:id, :price, 0);")
-#         db_connection.execute(statement, {"price": price, "id": id})
-#         db_connection.commit()
-#         ch.basic_ack(delivery_tag = method.delivery_tag)
-   
-# new_items = "new_items"
-# channel.exchange_declare(exchange=new_items, exchange_type='fanout', durable=True)
-# result = channel.queue_declare(queue='', durable=True)
-# queue_name = result.method.queue
-# channel.queue_bind(exchange=new_items, queue=queue_name)
-# channel.basic_consume(queue=queue_name, on_message_callback=new_item_callback)
