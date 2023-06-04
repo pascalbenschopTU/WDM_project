@@ -43,14 +43,10 @@ class SelectStatement():
 class AddStatement():
     item_id: str
     amount: int
-    reply_to: str
-    correlation_id: str
     
-    def __init__(self, item_id: str, amount: int, reply_to: str, correlation_id: str):
+    def __init__(self, item_id: str, amount: int):
         self.item_id = item_id
         self.amount = amount
-        self.reply_to = reply_to
-        self.correlation_id = correlation_id
 
 class StockItem():
     item_id: str

@@ -1,51 +1,28 @@
 # import pika
-from sqlalchemy import create_engine, text
 import os
 from stock_item import AddStatement, SubtractTansaction, StockItem, Statement, SelectStatement
 from typing import Union
 import asyncio
-import aioamqp
-import threading
 from aio_pika import Message, connect, ExchangeType
-from aioamqp.channel import Channel
 from aio_pika.abc import AbstractIncomingMessage
-import sqlalchemy.pool as pool
-import psycopg2
-import redis
-from aioredlock import Aioredlock, LockError, Sentinel
-from sqlalchemy.orm import sessionmaker
-
-# def getconn():
-#     c = psycopg2.connect(user="ed", host="127.0.0.1", dbname="test")
-#     return c
-# mypool = pool.QueuePool(getconn, max_overflow=10, pool_size=5)
-        #setup database
-# connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
-# engine = create_engine(connection_string)
+from aioredlock import Aioredlock, LockError
+from redis import asyncio as aioredis
+import json
 
 operations_queue = asyncio.Queue()
 global_channel = None        
 
-
-
-# db: redis.Redis = redis.Redis(host=os.environ['REDIS_HOST'],
-#                               port=int(os.environ['REDIS_PORT']),
-#                               password=os.environ['REDIS_PASSWORD'],
-#                               db=int(os.environ['REDIS_DB']))
 host = os.environ['REDIS_HOST']
 port = port=int(os.environ['REDIS_PORT'])
 password = password=os.environ['REDIS_PASSWORD']
 db = db=int(os.environ['REDIS_DB'])
 # Define a list of connections to your Redis instances:
 redis_instances = [
-  (host, port),
-  {'host': host, 'port': port, 'db': db},
-  f'redis://{host}:{port}/2',
-  Sentinel((host, 26379), master='leader', db=3),
-  Sentinel(f'redis://{host}:26379/4?master=leader&encoding=utf-8'),
-  Sentinel(f'rediss://:{password}@{host}:26379/5?master=leader&encoding=utf-8&ssl_cert_reqs=CERT_NONE'),
+  {'host': host, 'port': port, 'db': db, 'password': password}
 ]
+connection_url = f"redis://default:{password}@{host}:{port}"
 
+lock_manager = Aioredlock(redis_instances)
 
 def convert_to_transaction(queue_identifier: str, correlation_id: str, csv_items: list[str]) -> SubtractTansaction:
     statements = []
@@ -54,51 +31,74 @@ def convert_to_transaction(queue_identifier: str, correlation_id: str, csv_items
         statements.append(Statement(id, int(amount)))
     return SubtractTansaction(queue_identifier, correlation_id, statements)
 
-def get_items(ids: list[str], db_connection) -> dict[str, StockItem]:
-    select_statement = text("SELECT * FROM stock WHERE id=ANY(:ids)")
+## TODO do multiple fetches when i figure out how
+async def get_items(ids: list[str], redis) -> dict[str, StockItem]:
     unique_ids = list(set(ids))
+    # rows = redis.mget(unique_ids)
     items: dict[StockItem] = {}
-    rows = db_connection.execute(select_statement, {"ids": unique_ids})
-    for row in rows:
-        items[row[0]] = StockItem(row[0], int(row[1]), int(row[2]))
+    for id in unique_ids:
+        item = await redis.hmget(f'item:{id}', 'price', 'stock')
+        if None not in item:
+            items[id] = (StockItem(id, int(item[0]), int(item[1])))
     return items
 
-def persist_transactions(items: list[StockItem], cursor):
-    params = []
-    for item in items:
-        params.add((item.stock, item.id))
-    cursor.fast_executemany = True
-    cursor.executemany("UPDATE stock SET stock=? WHERE id=?", params)
-    # update_statement = text("UPDATE stock SET stock = :stock WHERE id=:id;")
-    # db_connection.execute(update_statement, {"id": id, "stock": item.stock})
+async def persist_transactions(items: dict[str, int], redis):
+    async with redis.pipeline() as pipe:
+        for key, stock in items.items():
+            pipe.hincrby(f'item:{key}', 'stock', stock)
+        await pipe.execute()
     
 async def execute_transactions(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]], items_arg: dict[str, StockItem]):
     items = items_arg.copy()
+    updated_stock = {}
     for transaction in transactions:
         if isinstance(transaction, SelectStatement):
+            if transaction.item_id not in items.keys():
+                message = f"Could not find item with id: {transaction.item_id}status:400"
+                await send_response(transaction.reply_to, transaction.correlation_id, message)
+                break
+            
             item = items[transaction.item_id]
-            message = f"Could not find item with id: {transaction.item_id}"
-            if item is not None:
-                message = item.convert_to_json_string()
-            await send_response(transaction.reply_to, transaction.correlation_id, message) #message
+            message = f"{json.dumps(item.__dict__)}status:200"
+            await send_response(transaction.reply_to, transaction.correlation_id, message)
+        
         elif isinstance(transaction, AddStatement):
+            if transaction.item_id not in updated_stock.keys():
+                updated_stock[transaction.item_id] = 0
             items[transaction.item_id].stock += transaction.amount
+            updated_stock[transaction.item_id] += transaction.amount
+    
         elif isinstance(transaction, SubtractTansaction):
-            items_clone = items
+            items_clone = items.copy()
+            updated_stock_clone = updated_stock.copy()
             all_successfull = True
             for statement in transaction.statements:
                 if items[statement.item_id].stock >= statement.amount:
+                    if statement.item_id not in updated_stock_clone.keys():
+                        updated_stock_clone[statement.item_id] = 0
                     items_clone[statement.item_id].stock -= statement.amount
+                    updated_stock_clone[statement.item_id] -= statement.amount
+                    
                 else:
                     await send_response(transaction.reply_to, transaction.correlation_id, f"Not enough stock of {statement.item_id}")
                     all_successfull = False
                     break
             if all_successfull:
                 items = items_clone
+                updated_stock = updated_stock_clone
                 await send_response(transaction.reply_to, transaction.correlation_id, "Success")
-    return items
+    return updated_stock
+
+async def acquire_lock(ressource_name):
+    global lock_manager
+    try:
+        lock = await lock_manager.lock(ressource_name, lock_timeout=10)
+        return lock
+    except LockError:
+        print('Lock not acquired')
+    raise
     
-async def execute_window(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]]) -> None:
+async def execute_window(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]], redis) -> None:
     ids = set()
     for entry in transactions:
         if isinstance(entry, SubtractTansaction):
@@ -107,19 +107,20 @@ async def execute_window(transactions: list[Union[SelectStatement, AddStatement,
         else:
             ids.add(entry.item_id)
     ids = list(ids)
-    with sessionmaker(bind= engine) as session:
-        cursor = session.cursor()
+    tasks = []
+    for id in ids:
+        tasks.append(asyncio.create_task(acquire_lock(id)))
+    locks = await asyncio.gather(*tasks)
+    
+    items = await get_items(ids, redis)
+    updated_items = await execute_transactions(transactions, items)
+        
+    await persist_transactions(updated_items, redis)
+    for lock in locks:
+        await lock_manager.unlock(lock)
 
-        items = get_items(ids, cursor)
-        updated_items = await execute_transactions(transactions, items)
-        to_persist = []
-        for key, updated_item in updated_items.items():
-            if updated_item.stock != items[key].stock:
-                to_persist.append(updated_items[key])
-        persist_transactions(to_persist, cursor)
-        cursor.commit()
 
-async def read_array_periodically(interval):
+async def read_array_periodically(interval, redis):
     while True:
         transactions = []
         while not operations_queue.empty():
@@ -127,12 +128,10 @@ async def read_array_periodically(interval):
             transactions.append(queue_object)
     
         if len(transactions) > 0:
-            await execute_window(transactions)
+            await execute_window(transactions, redis)
 
         await asyncio.sleep(interval)
 
-def start_reading_loop():
-    asyncio.run(read_array_periodically(0.01))
 
 async def send_response(reply_to: str, correlation_id: str, out_going_message: str):
     global global_channel
@@ -149,16 +148,16 @@ async def select_callback(message: AbstractIncomingMessage):
 async def new_item_callback(message: AbstractIncomingMessage):
     async with message.process():
         (id, price) = message.body.decode().split(",")
-        with engine.connect().execution_options(isolation_level="READ UNCOMMITTED") as db_connection:
-            statement = text("INSERT INTO stock (id, price, stock) VALUES (:id, :price, 0);")
-            db_connection.execute(statement, {"price": price, "id": id})
-            db_connection.commit()
-            await message.ack
+        redis = aioredis.from_url(connection_url)
+        item = {'item_id': id, 'price': price, 'stock': 0}
+        await redis.hset(f'item:{id}', mapping=item) ## apparently need to await
+        ## TODO fix this so we only send an ack if it works.
+        # await message.ack
 
 async def add_stock_callback(message: AbstractIncomingMessage):
     async with message.process():
         (item_id, amount) = message.body.decode().split(",")
-        add_statement = AddStatement(item_id, amount, message.reply_to, message.correlation_id)
+        add_statement = AddStatement(item_id, int(amount))
         # operations.append(add_statement)
         await operations_queue.put(add_statement)
             
@@ -196,11 +195,16 @@ async def main() -> None:
         new_item_exchange = await channel.declare_exchange(new_items, ExchangeType.FANOUT, durable=True)
         queue = await channel.declare_queue(exclusive=True)
         await queue.bind(new_item_exchange)
-        await queue.consume(new_item_callback, no_ack=True)
-        
-        asyncio.create_task(read_array_periodically(0.01))
+        await queue.consume(new_item_callback)
+    ## Initiliaze redis
+        pool = aioredis.ConnectionPool.from_url(connection_url, max_connections=10, encoding="utf-8", decode_responses=True)
+        redis = aioredis.Redis(connection_pool=pool)
+            
+        asyncio.create_task(read_array_periodically(0.01, redis))
         await asyncio.Future()
+        
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
     asyncio.run(main())
+    

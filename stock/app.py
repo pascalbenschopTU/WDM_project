@@ -1,12 +1,8 @@
-import os
 from flask import Flask, request
-from sqlalchemy import create_engine, text
 import pika
 import random
 import string
-import time
 import logging
-import json
 from RabbitMQClient import RabbitMQClient
 app = Flask("stock-service")
 logging.basicConfig(level=logging.INFO)
@@ -15,10 +11,6 @@ channel = connection.channel()
 channel.exchange_declare(exchange='new_items', exchange_type='fanout', durable=True)
 channel.exchange_declare(exchange='subtract', exchange_type='fanout', durable=True)
 channel.exchange_declare(exchange='add', exchange_type='fanout', durable=True)
-
-connection_string = f"postgresql+psycopg2://{os.environ['POSTGRES_USER']}:{os.environ['POSTGRES_PASSWORD']}@{os.environ['POSTGRES_HOST']}:{os.environ['POSTGRES_PORT']}/{os.environ['POSTGRES_DB']}"
-## We do reads directly, and we allow dirty reads.
-engine = create_engine(connection_string)
 
 @app.post('/item/create/<price>')
 def create_item(price: int):
@@ -34,21 +26,17 @@ def create_item(price: int):
 
 @app.get('/find/<item_id>')
 def find_item(item_id: str):
-    # try:
     client = RabbitMQClient(connection, "select")
     response = client.call(f"{item_id}")
-        # if response ==("stock") > 0:
-    #  return json.parse(response), 200
-    return response, 400
-    # except:
-    #     pass
-    # return "nO RESPONSE", 400
+    parsed_response = response.split("status:")
+    return parsed_response[0], parsed_response[1]
+
 
 @app.post('/add/<item_id>/<amount>')                                                                                                                                                                                                                                                                                                                  
 def add_stock(item_id: str, amount: int):
     channel.basic_publish(exchange='add',
         routing_key="",
-        body=f"{int(time.time())},{item_id},{amount}")
+        body=f"{item_id},{amount}")
     return "Success", 200
 
 @app.post('/subtract/<item_id>/<amount>')

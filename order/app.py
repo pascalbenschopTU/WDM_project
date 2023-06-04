@@ -20,8 +20,8 @@ db = mongo.db
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
-channel.queue_declare(queue="stock", durable=True)
 channel.queue_declare(queue="payment", durable=True)
+channel.exchange_declare(exchange='add', exchange_type='fanout', durable=True)
 
 
 def get_order(order_id: int) -> Order:
@@ -142,8 +142,8 @@ def checkout(order_id):
         # Roll back the reserved items
         if stock_response and stock_response.status_code < 300:
             for item in order.items:
-                channel.basic_publish(exchange='',
-                            routing_key="new_stock",
+                channel.basic_publish(exchange='add',
+                            routing_key="",
                             body=f"{item},1")
         if hasattr(e, 'message'):
             return e.message, 400
