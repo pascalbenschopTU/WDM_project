@@ -32,32 +32,44 @@ First run `docker-compose up --build` to get all the web services running, then 
 
 Run the following commands to set up a local cluster:
 
-`minikube start`
+```
+minikube start
+```
 
-`helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx` (first time)
+Install ingress and rabbitmq
+```
+helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
 
-`helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx`
-`helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq`
+helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq
+```
+If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
 
-<!-- `kubectl apply -f ./test2/` (will be renamed) -->
-`& minikube -p minikube docker-env --shell powershell | Invoke-Expression`
-`docker-compose build rabbitmq` (temporarily for pulling image)
-`docker-compose build order-service`
-`kubectl apply -f .\k8s_final\` (will be renamed)
+Pull order-service (can also be done without docker)
+```
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression (temporarily for pulling image)
 
-wait for the ingress to be ready:
+docker-compose build rabbitmq (temporarily for pulling image)
 
-`kubectl wait --namespace default --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s`
+docker-compose build order-service (temporarily for pulling image)
 
-`database_setup_k8s.sh`
+kubectl apply -f .\k8s_final\ (will be renamed)
+```
 
-`minikube tunnel`
+Wait for the ingress to be ready, repeat `kubectl get pods` until all ready.`
+
+
+```
+database_setup_k8s.sh
+
+minikube tunnel
+```
 
 MongoServerError: Rejecting initiate with a set name that differs from command line set name, initiate set name: rs-order_shard-03, command line set name: order_rs-shard-03
 
 The application should now be avaibable on `localhost`. You can reach it by using curl:
 
 F.e.:
+
 `curl -i -X POST http://localhost/payment/create_user` 
 
 **_Requirements:_** You need to have minikube (with ingress enabled) and helm installed on your machine.
