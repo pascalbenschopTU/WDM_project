@@ -76,11 +76,24 @@ And check if the services are running with:
 
 You should see READY 1/1 for every pod.
 
+### Ingress
+
+`minikube addons enable ingress`
+
+`kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.1.3/deploy/static/provider/cloud/deploy.yaml`
+
+`kubectl get svc -n ingress-nginx
+
+
 ### Troubleshooting:
 
 To delete pvc's run `helm list` and then `helm delete <name>` for each pvc.
 To delete pvc's by force from kubectl use `delete pvc --all --force`
 To check the logs of kubectl use `kubectl logs <pod-name>`, for example `kubectl logs stock-deployment-b8d664cb5-bbnk8`
+
+`kubectl get pods -n ingress-nginx`
+`kubectl logs -n ingress-nginx <pod>`
+Error obtaining Endpoints for Service "default/docker-hello-world-svc": no object matching key "default/docker-hello-world-svc" in local store
 
 ### kubernetes cluster (managed k8s cluster in the cloud)
 
