@@ -32,10 +32,23 @@ Run the following commands to set up a local cluster:
 `minikube start`
 
 `helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx`
+`helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq`
 
-`kubectl apply -f ./test2/` (will be renamed)
+<!-- `kubectl apply -f ./test2/` (will be renamed) -->
+`& minikube -p minikube docker-env --shell powershell | Invoke-Expression`
+`docker-compose build rabbitmq` (temporarily for pulling image)
+`docker-compose build order-service`
+`kubectl apply -f .\k8s_final\` (will be renamed)
+
+wait for the ingress to be ready:
+
+`kubectl wait --namespace default --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s`
+
+`database_setup_k8s.sh`
 
 `minikube tunnel`
+
+MongoServerError: Rejecting initiate with a set name that differs from command line set name, initiate set name: rs-order_shard-03, command line set name: order_rs-shard-03
 
 The application should now be avaibable on `localhost`. You can reach it by using curl:
 
