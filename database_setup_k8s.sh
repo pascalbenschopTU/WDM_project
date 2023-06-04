@@ -25,7 +25,7 @@ kubectl exec --tty $ps03 -- sh -c "mongosh --eval '`cat ./payment/scripts/init-s
 ECHO -e "${Green} Done setting up shards for the databases! ${Color_Off}" > `tty`
 
 # Wait for config server and shards to elect primaries
-sleep 20
+#sleep 20
 
 ECHO -e "${Green} Setting up routers for the database ${Color_Off}" > `tty`
 

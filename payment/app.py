@@ -10,7 +10,7 @@ hostname2 = os.environ['MONGODB_HOSTNAME_2']
 database = os.environ['MONGODB_DATABASE']
 gateway_url = os.environ['GATEWAY_URL']
 
-app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname2}:27017/{database}"
+app.config["MONGO_URI"] = f"mongodb://{hostname}:29017,{hostname2}:27118/{database}"
 
 
 mongo = PyMongo(app)

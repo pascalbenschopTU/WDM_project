@@ -31,7 +31,7 @@ spec:
             - --port
             - "27017"
             - --configdb
-            - payment_rs-config-server/payment-configsvr01:27119,payment-configsvr02:27120,payment-configsvr03:27121
+            - payment_rs-config-server/payment-configsvr01:27119
             - --bind_ip_all
           image: mongo:6.0.1
           name: payment-router-01
