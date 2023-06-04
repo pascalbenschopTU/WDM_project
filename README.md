@@ -30,13 +30,17 @@ First run `docker-compose up --build` to get all the web services running, then 
 Run the following commands to set up a local cluster:
 
 `minikube start`
+
 `helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx`
+
 `kubectl apply -f ./test2/` (will be renamed)
+
 `minikube tunnel`
 
 The application should now be avaibable on `localhost`. You can reach it by using curl:
 
-
+F.e.:
+`curl -i -X POST http://localhost/payment/create_user` 
 
 **_Requirements:_** You need to have minikube (with ingress enabled) and helm installed on your machine.
 
