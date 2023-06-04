@@ -203,7 +203,7 @@ services:
     restart: always
     links:
       - order_shard03-b
-      - order_shard03-c
+      # - order_shard03-c
 
   order_shard03-b:
     image: mongo:6.0.1
