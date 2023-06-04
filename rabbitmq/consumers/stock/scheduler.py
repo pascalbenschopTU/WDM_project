@@ -18,15 +18,15 @@ host = os.environ['REDIS_HOST']
 port = port=int(os.environ['REDIS_PORT'])
 password = password=os.environ['REDIS_PASSWORD']
 db =int(os.environ['REDIS_DB'])
-queue_name = os.environ['QUEUE_NAME']
+request_queue_name = os.environ['REQUEST_QUEUE_NAME']
+item_queue_name = os.environ['ITEM_QUEUE_NAME']
 # Define a list of connections to your Redis instances:
 connection_url = f"redis://default:{password}@{host}:{port}"
 
-redis_instances = [
-  connection_url
-]
+redis_instances = [connection_url]
 RABBIT_URI = "amqp://guest:guest@rabbitmq/"
-lock_manager = Aioredlock(redis_instances)
+lock_manager = Aioredlock(redis_instances, retry_count=100, retry_delay_min=0.01, retry_delay_max=0.002)
+prefetch_count = 1
 
 def convert_to_transaction(queue_identifier: str, correlation_id: str, csv_items: list[str]) -> SubtractTansaction:
     statements = []
@@ -35,10 +35,9 @@ def convert_to_transaction(queue_identifier: str, correlation_id: str, csv_items
         statements.append(Statement(id, int(amount)))
     return SubtractTansaction(queue_identifier, correlation_id, statements)
 
-## TODO do multiple fetches when i figure out how
 async def get_items(ids: list[str], redis) -> dict[str, StockItem]:
     unique_ids = list(set(ids))
-    # rows = redis.mget(unique_ids)
+    # rows = redis.mget(unique_ids) ## can't figure out how mget works so now it's just this slow approach
     items: dict[StockItem] = {}
     for id in unique_ids:
         item = await redis.hmget(f'item:{id}', 'price', 'stock')
@@ -100,13 +99,13 @@ async def main() -> None:
     channel_pool = Pool(get_channel, max_size=10, loop=loop)
     
     async with channel_pool.acquire() as channel:
-        await channel.set_qos(10)   
+        await channel.set_qos(prefetch_count)   
         global global_channel
         global_channel = channel
         
         requests = "requests"
         rquest_exchange = await channel.declare_exchange(requests, ExchangeType.FANOUT, durable=True)
-        queue = await channel.declare_queue(queue_name, auto_delete=False, durable=True)
+        queue = await channel.declare_queue(request_queue_name, auto_delete=False, durable=True)
         await queue.bind(rquest_exchange)
         await queue.consume(super_callback)
         
@@ -114,7 +113,7 @@ async def main() -> None:
         await channel.set_qos(1)
         new_items = "new_items"
         new_item_exchange = await channel.declare_exchange(new_items, ExchangeType.FANOUT, durable=True)
-        queue = await channel.declare_queue(exclusive=True)
+        queue = await channel.declare_queue(item_queue_name, exclusive=True)
         await queue.bind(new_item_exchange)
         await queue.consume(new_item_callback)
         
@@ -150,14 +149,14 @@ async def main() -> None:
         for lock in locks:
             await lock_manager.unlock(lock)
 
-
-    async def read_array_periodically(interval, redis):
+    async def read_transactions(interval, redis):
         while True:
             transactions = []
-            while not operations_queue.empty():
-                queue_object = await operations_queue.get()
-                transactions.append(queue_object)
-        
+            if operations_queue.qsize() >= prefetch_count:
+                for i in range(prefetch_count):
+                    queue_object = await operations_queue.get()
+                    transactions.append(queue_object)
+
             if len(transactions) > 0:
                 await execute_window(transactions, redis)
 
@@ -204,7 +203,7 @@ async def main() -> None:
                     await send_response(transaction.reply_to, transaction.correlation_id, "Success")
         return updated_stock
     
-    task = loop.create_task(read_array_periodically(0.01, redis))    
+    task = loop.create_task(read_transactions(0.001, redis))
     await task    
     await asyncio.Future()
 

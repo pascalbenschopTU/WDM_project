@@ -60,37 +60,16 @@ services:
     environment:
       - GATEWAY_URL=http://gateway:80
     depends_on:
-      stock-db:
+      rabbitmq:
         condition: service_healthy
+    # depends_on:
+    #   stock-db-redis:
+    #     condition: service_healthy
 
-  stock-db:
-    image: postgres:latest
-    restart: always
-    env_file:
-      - env/stock_postgresql.env
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -d stock -U postgres"] #"pg_resetwal -f DATADIR"
-      interval: 30s
-      timeout: 60s
-      retries: 5
-      start_period: 80s
-    volumes:
-      - ./postgres-data:/var/lib/postgresql/stock
-      - ./stock/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
-      - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
-      - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
-    ports:
-      - "5432:5432"
 
   stock-db-redis:
     image: redis:latest
     command: redis-server --requirepass redis --maxmemory 512mb
-
-
   
   stock-consumer:
     build: ./rabbitmq/consumers/stock
@@ -101,8 +80,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      stock-db:
-        condition: service_healthy
+      # stock-db-redis:
+      #   condition: service_healthy
     logging:
       driver: "json-file"
       options:
