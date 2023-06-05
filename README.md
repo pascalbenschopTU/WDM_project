@@ -52,6 +52,13 @@ docker-compose build rabbitmq (temporarily for pulling image)
 
 docker-compose build order-service (temporarily for pulling image)
 
+## bitnami https://docs.bitnami.com/kubernetes/infrastructure/redis-cluster/get-started/install/
+helm repo add bitnami https://charts.bitnami.com/bitnami
+
+kubectl cluster-info
+
+helm install cluster-release bitnami/redis-cluster
+
 kubectl apply -f .\k8s_final\ (will be renamed)
 ```
 
