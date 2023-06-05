@@ -20,9 +20,10 @@ db = mongo.db
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
-channel.queue_declare(queue="payment", durable=True)
 exchange_name = "requests"
 channel.exchange_declare(exchange=exchange_name, exchange_type='fanout', durable=True)
+channel.queue_declare(queue="payment", durable=True)
+
 
 def get_order(order_id: int) -> Order:
     collection = db.orders
@@ -126,24 +127,30 @@ def checkout(order_id):
 
     # Check if we found an order with the given id
     if order is None:
-        return f'Could not find an order with id {order_id}', 400    
+        return f'Could not find an order with id {order_id}', 400
+    
+    reserved_items = []
+
     try:
-        stock_response = requests.post(f"{STOCK_URL}/subtract_bulk", json={"ids": list(order.items)})
-        if not (200 <= stock_response.status_code < 300):
-            raise Exception("Not enough stock")
-        ## todo rollback to the specific instance instance
+        for item in order.items:
+            order_response = requests.post(f"{STOCK_URL}/subtract/{item}/1")
+            if not (200 <= order_response.status_code < 300):
+                raise Exception("Not enough stock") 
+            reserved_items.append(item)
+
+
         payment_response = requests.post(f"{PAYMENT_URL}/pay/{order.user_id}/{order_id}/{order.total_price}")
 
         if not (200 <= payment_response.status_code < 300):
-            raise Exception("Not enough credit")
+            raise Exception("Not enough credit") 
         order.paid = True
         store_order(order)
     except Exception as e:
         # Roll back the reserved items
-        if stock_response and stock_response.status_code < 300:
-            for item in order.items:
-                channel.basic_publish(exchange=exchange_name,
-                    routing_key="", body=f"add,{item},1")
+        for item in reserved_items:
+            channel.basic_publish(exchange="requests",
+                 routing_key="", body=f"add,{item},1")
+        
         if hasattr(e, 'message'):
             return e.message, 400
         return str(e), 400

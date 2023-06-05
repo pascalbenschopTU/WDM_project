@@ -5,4 +5,4 @@ aioamqp==0.15.0
 aio-pika==9.1.2 
 redis>=4.2.0rc1
 aioredlock==0.7.3
-aioredis-cluster==2.5.0 
+aioredis-cluster==2.5.0

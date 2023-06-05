@@ -10,8 +10,9 @@ logging.basicConfig(level=logging.INFO)
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
 exchange_name = "requests"
-channel.exchange_declare(exchange='new_items', exchange_type='fanout', durable=True)
 channel.exchange_declare(exchange=exchange_name, exchange_type='fanout', durable=True)
+channel.exchange_declare(exchange='new_items', exchange_type='fanout', durable=True)
+
 @app.post('/item/create/<price>')
 def create_item(price: int):
     price = int(price)

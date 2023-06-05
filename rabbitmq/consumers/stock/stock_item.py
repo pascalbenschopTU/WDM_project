@@ -1,11 +1,5 @@
 from enum import Enum
 
-class Operator(Enum):
-    SUBTRACT = 1,
-    ADD = 2,
-    SELECT = 3
-    
-
 class Statement():
     item_id: str
     amount: int
