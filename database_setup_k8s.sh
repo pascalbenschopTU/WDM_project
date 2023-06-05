@@ -24,7 +24,7 @@ kubectl exec --tty $ps03 -- sh -c "mongosh --eval '`cat ./payment/scripts/init-s
 
 # Setup shards for order database
 ECHO -e "${Green} Setting up shards for order database.... ${Color_Off}" > `tty`
-pc01=$(kubectl get pods -o=name | grep order-configsvr01 | sed "s/^.\{4\}//")
+pc01=$(kubectl get pods -o=name | grep order-configserver01 | sed "s/^.\{4\}//")
 kubectl exec --tty $pc01 -- sh -c "mongosh --eval '`cat ./order/scripts/init-configserver.js`'"
  
 ps01=$(kubectl get pods -o=name | grep order-shard01-a | sed "s/^.\{4\}//")
