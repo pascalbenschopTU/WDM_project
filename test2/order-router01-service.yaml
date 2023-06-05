@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o ./test2/
+    kompose.version: 1.28.0 (c4137012e)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: order-router01
+  name: order-router01
+spec:
+  ports:
+    - name: "28017"
+      port: 28017
+      targetPort: 27017
+  selector:
+    io.kompose.service: order-router01
+status:
+  loadBalancer: {}
