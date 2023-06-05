@@ -25,7 +25,7 @@ db = mongo.db
 orders = db.orders
 
 ## define channels
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300, credentials=pika.PlainCredentials('user', 'password')))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 channel.queue_declare(queue="payment", durable=True)

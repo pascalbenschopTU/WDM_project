@@ -27,8 +27,8 @@ ECHO -e "${Green} Setting up routers for the database ${Color_Off}" > `tty`
 # # # Initializing the router
 # # #Enable sharding and setup sharding-key
 ECHO -e "${Green} Setting the router for the order servive..... ${Color_Off}" > `tty`
-docker-compose exec -T order_router01 sh -c "mongosh < order/scripts/init-router.js"
-docker-compose exec -T order_router01 sh -c "mongosh < order/scripts/init-mongo.js"
+docker-compose exec -T order-router01 sh -c "mongosh < order/scripts/init-router.js"
+docker-compose exec -T order-router01 sh -c "mongosh < order/scripts/init-mongo.js"
 
 ECHO -e "${Green} Setting the router for the payment servive..... ${Color_Off}" > `tty`
 
