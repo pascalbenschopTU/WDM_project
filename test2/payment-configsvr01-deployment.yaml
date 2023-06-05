@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o test2
+    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o ./test2/
     kompose.version: 1.28.0 (c4137012e)
   creationTimestamp: null
   labels:
@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       annotations:
-        kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o test2
+        kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o ./test2/
         kompose.version: 1.28.0 (c4137012e)
       creationTimestamp: null
       labels:

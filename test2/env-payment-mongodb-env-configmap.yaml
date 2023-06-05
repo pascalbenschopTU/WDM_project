@@ -7,5 +7,5 @@ kind: ConfigMap
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: payment-service-env-payment-mongodb-env
+    io.kompose.service: payment-consumer-env-payment-mongodb-env
   name: env-payment-mongodb-env
