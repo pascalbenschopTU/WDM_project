@@ -65,7 +65,7 @@ spec:
           image: ghcr.io/leonkempen/wdm-stock:latest
           name: stock-service
           ports:
-            - containerPort: 50000
+            - containerPort: 5000
           resources: {}
       restartPolicy: Always
 status: {}
