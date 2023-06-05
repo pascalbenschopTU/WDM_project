@@ -13,31 +13,29 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  gateway:
-    image: nginx:latest
-    volumes:
-      - ./gateway_nginx.conf:/etc/nginx/nginx.conf:ro
-    ports:
-      - "8000:80"
-    depends_on:
-      - order-service
-      - stock-service
-      - payment-service
+  # gateway:
+  #   image: nginx:latest
+  #   volumes:
+  #     - ./gateway_nginx.conf:/etc/nginx/nginx.conf:ro
+  #   ports:
+  #     - "8000:80"
+  #   depends_on:
+  #     - order-service
+  #     - stock-service
+  #     - payment-service
 
-  order-service:
-    build: ./order
-    #image: order:latest
-    image: ghcr.io/leonkempen/wdm-order:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
-    env_file:
-      - env/order-mongodb.env
-    environment:
-      - GATEWAY_URL=http://gateway:80
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-    ports:
-      - 5000
+  # order-service:
+  #   build: ./order
+  #   #image: order:latest
+  #   image: ghcr.io/leonkempen/wdm-order:latest
+  #   command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
+  #   env_file:
+  #     - env/order-mongodb.env
+  #   environment:
+  #     - GATEWAY_URL=http://gateway:80
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
 
   # ## Order Router
   order-router01:
@@ -139,7 +137,6 @@ services:
     container_name: order_shard-01-node-c
     command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
     volumes:
-      - ./order/scripts:/order/scripts
       - mongodb_cluster_order_shard01_c_db:/data/db
       - mongodb_cluster_order_shard01_c_config:/data/configdb
     ports:
@@ -221,22 +218,20 @@ services:
   #     - 28130:27017
   #   restart: always
 
-  stock-service:
-    build: ./stock
-    #image: stock:latest
-    image: ghcr.io/leonkempen/wdm-stock:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    env_file:
-      - env/stock-postgresql.env
-    environment:
-      - GATEWAY_URL=http://gateway:80
-    restart: always
-    depends_on:
-      stock-db:
-        condition: service_healthy
-    ports:
-      - 5000
-      
+  # stock-service:
+  #   build: ./stock
+  #   #image: stock:latest
+  #   image: ghcr.io/leonkempen/wdm-stock:latest
+  #   command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+  #   env_file:
+  #     - env/stock-postgresql.env
+  #   environment:
+  #     - GATEWAY_URL=http://gateway:80
+  #   restart: always
+  #   depends_on:
+  #     stock-db:
+  #       condition: service_healthy
+
   stock-db:
     image: postgres:latest
     restart: always
@@ -259,16 +254,15 @@ services:
       timeout: 5s
       retries: 5
 
-  payment-service:
-    build: ./payment
-    image: ghcr.io/leonkempen/wdm-payment:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    env_file:
-      - env/payment-mongodb.env
-    environment:
-      - GATEWAY_URL=http://gateway:80
-    ports:
-      - 5000
+  # payment-service:
+  #   build: ./payment
+  #   image: ghcr.io/leonkempen/wdm-payment:latest
+  #   command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+  #   env_file:
+  #     - env/payment-mongodb.env
+  #   environment:
+  #     - GATEWAY_URL=http://gateway:80
+
   payment-consumer:
     build: ./rabbitmq/consumers/payment
     #image: payment-consumer:latest
@@ -324,7 +318,7 @@ services:
   payment-configsvr01:
     image: mongo:6.0.1
     container_name: payment_mongo-config-01
-    command: mongod --port 27017 --configsvr --replSet  payment_rs-config-server
+    command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
     volumes:
       - payment_mongodb_cluster_configsvr01_db:/data/db
       - payment_mongodb_cluster_configsvr01_config:/data/configdb

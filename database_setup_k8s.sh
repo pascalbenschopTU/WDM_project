@@ -41,8 +41,6 @@ ECHO -e "${Green} Setting up routers for the database ${Color_Off}" > `tty`
 # # # Initializing the router
 # # #Enable sharding and setup sharding-key
 ECHO -e "${Green} Setting the router for the order servive..... ${Color_Off}" > `tty`
-# TODO add k8s version of command below
-# docker-compose exec -T order_router01 sh -c "mongosh < order/scripts/init-router.js"
 
 pr01=$(kubectl get pods -o=name | grep payment-router01 | sed "s/^.\{4\}//")
 kubectl exec --tty $pr01 -- sh -c "mongosh --eval '`cat ./payment/scripts/init-router.js`'"
