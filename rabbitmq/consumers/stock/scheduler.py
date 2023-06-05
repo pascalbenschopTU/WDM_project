@@ -10,6 +10,7 @@ from redis import asyncio as aioredis
 from aio_pika.pool import Pool
 import aio_pika
 import json
+import aioredis_cluster
 
 operations_queue = asyncio.Queue()
 global_channel = None        
@@ -21,13 +22,10 @@ db =int(os.environ['REDIS_DB'])
 request_queue_name = os.environ['REQUEST_QUEUE_NAME']
 item_queue_name = os.environ['ITEM_QUEUE_NAME']
 # Define a list of connections to your Redis instances:
-connection_url = f"redis://default:{password}@{host}:{port}"
-
-redis_instances = [connection_url]
+connection_url = f"redis://default:bitnami@redis-node-5:6379"
 RABBIT_URI = "amqp://guest:guest@rabbitmq/"
-lock_manager = Aioredlock(redis_instances, retry_count=100, retry_delay_min=0.01, retry_delay_max=0.002)
-prefetch_count = 1
 
+prefetch_count = 1
 def convert_to_transaction(queue_identifier: str, correlation_id: str, csv_items: list[str]) -> SubtractTansaction:
     statements = []
     for i in range(0, len(csv_items), 2):
@@ -76,16 +74,6 @@ async def new_item_callback(message: AbstractIncomingMessage):
         ## TODO fix this so we only send an ack if it works.
         await message.ack()
 
-
-async def acquire_lock(ressource_name):
-        global lock_manager
-        try:
-            lock = await lock_manager.lock(ressource_name, lock_timeout=10)
-            return lock
-        except LockError:
-            print('Lock not acquired')
-        raise
-
 async def get_connection():
         return await aio_pika.connect_robust(RABBIT_URI)
     
@@ -119,14 +107,28 @@ async def main() -> None:
         
     
     ## Initiliaze redis
+    # redis_connection_pool = aioredis.ConnectionPool.from_url(connection_url, max_connections=10, encoding="utf-8", decode_responses=True)
+    # redis = aioredis.Redis()
+    redis = await aioredis_cluster.create_redis_cluster([
+        connection_url
+    ])
+    lock_manager = Aioredlock(redis, retry_count=100, retry_delay_min=0.01, retry_delay_max=0.01)
     
-    redis_connection_pool = aioredis.ConnectionPool.from_url(connection_url, max_connections=10, encoding="utf-8", decode_responses=True)
-    redis = aioredis.Redis(connection_pool=redis_connection_pool)
+    ## connection_pool=redis_connection_pool
     
     async def send_response(reply_to: str, correlation_id: str, out_going_message: str):
         async with channel_pool.acquire() as channel:  # type: aio_pika.Channel
             message = Message(body=out_going_message.encode(), correlation_id=correlation_id)
             await channel.default_exchange.publish(message, routing_key=reply_to)
+    
+    async def acquire_lock(ressource_name):
+        global lock_manager
+        try:
+            lock = await lock_manager.lock(ressource_name, lock_timeout=10)
+            return lock
+        except LockError:
+            print('Lock not acquired')
+        raise
     
     async def execute_window(transactions: list[Union[SelectStatement, AddStatement, SubtractTansaction]], redis) -> None:
         ids = set()

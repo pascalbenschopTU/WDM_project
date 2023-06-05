@@ -62,9 +62,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-    # depends_on:
-    #   stock-db-redis:
-    #     condition: service_healthy
 
 
   stock-db-redis:
@@ -80,8 +77,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      # stock-db-redis:
-      #   condition: service_healthy
     logging:
       driver: "json-file"
       options:
