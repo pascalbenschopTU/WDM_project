@@ -3,7 +3,6 @@ rs.initiate({
   version: 1,
   members: [
     { _id: 0, host: "payment-shard02-a:27125" },
-    { _id: 1, host: "payment-shard02-b:27126" },
-    { _id: 2, host: "payment-shard02-c:27127" },
+    { _id: 1, host: "payment-shard02-b:27126" }
   ],
 });

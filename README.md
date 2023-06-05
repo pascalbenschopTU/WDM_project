@@ -27,19 +27,49 @@ First run `docker-compose up --build` to get all the web services running, then 
 
 #### minikube (local k8s cluster)
 
+- install minikube
+- add helm to path
+
 Run the following commands to set up a local cluster:
 
-`minikube start`
+```
+minikube start
+```
 
-`helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx`
+Install ingress and rabbitmq
+```
+helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
 
-`kubectl apply -f ./test2/` (will be renamed)
+helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq
+```
+If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
 
-`minikube tunnel`
+Pull order-service (can also be done without docker)
+```
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression (temporarily for pulling image)
+
+docker-compose build rabbitmq (temporarily for pulling image)
+
+docker-compose build order-service (temporarily for pulling image)
+
+kubectl apply -f .\k8s_final\ (will be renamed)
+```
+
+Wait for the ingress to be ready, repeat `kubectl get pods` until all ready.`
+
+
+```
+database_setup_k8s.sh
+
+minikube tunnel
+```
+
+MongoServerError: Rejecting initiate with a set name that differs from command line set name, initiate set name: rs-order_shard-03, command line set name: order_rs-shard-03
 
 The application should now be avaibable on `localhost`. You can reach it by using curl:
 
 F.e.:
+
 `curl -i -X POST http://localhost/payment/create_user` 
 
 **_Requirements:_** You need to have minikube (with ingress enabled) and helm installed on your machine.

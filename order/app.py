@@ -13,18 +13,19 @@ PAYMENT_URL = "http://payment-service:5000"
 app = Flask("order-service")
 
 hostname = os.environ['MONGODB_HOSTNAME']
+hostname2 = os.environ['MONGODB_HOSTNAME_2']
 database = os.environ['MONGODB_DATABASE']
 gateway_url = os.environ['GATEWAY_URL']
 
 
-app.config["MONGO_URI"] = f"mongodb://{hostname}:27017,{hostname}:27017/{database}"
+app.config["MONGO_URI"] = f"mongodb://{hostname}:28017,{hostname2}:28118/{database}"
 
 mongo = PyMongo(app)
 db = mongo.db
 orders = db.orders
 
 ## define channels
-connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300, credentials=pika.PlainCredentials('user', 'password')))
 channel = connection.channel()
 channel.queue_declare(queue="stock", durable=True)
 channel.queue_declare(queue="payment", durable=True)
