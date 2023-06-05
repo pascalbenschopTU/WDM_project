@@ -54,6 +54,8 @@ spec:
                   name: env-payment-mongodb-env
           image: ghcr.io/leonkempen/wdm-payment:latest
           name: payment-service
+          ports:
+            - containerPort: 5000
           resources: {}
       restartPolicy: Always
 status: {}

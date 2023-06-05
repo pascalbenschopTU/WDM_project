@@ -55,6 +55,8 @@ spec:
                   name: env-order-mongodb-env
           image: ghcr.io/leonkempen/wdm-order:latest
           name: order-service
+          ports:
+            - containerPort: 5000
           resources: {}
       restartPolicy: Always
 status: {}

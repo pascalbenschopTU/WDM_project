@@ -36,6 +36,8 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
+    ports:
+      - 5000
 
   # ## Order Router
   order-router01:
@@ -232,7 +234,9 @@ services:
     depends_on:
       stock-db:
         condition: service_healthy
-
+    ports:
+      - 5000
+      
   stock-db:
     image: postgres:latest
     restart: always
@@ -263,7 +267,8 @@ services:
       - env/payment-mongodb.env
     environment:
       - GATEWAY_URL=http://gateway:80
-
+    ports:
+      - 5000
   payment-consumer:
     build: ./rabbitmq/consumers/payment
     #image: payment-consumer:latest
