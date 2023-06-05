@@ -12,7 +12,7 @@ services:
     ports:
       - "5672:5672"
       - "15672:15672"
-      
+
   gateway:
     image: nginx:latest
     volumes:
@@ -118,31 +118,31 @@ services:
       - 28122:27017
     restart: always
     links:
-      - order_shard01-b
-      - order_shard01-c
+      - order-shard01-b
+      - order-shard01-c
 
-  # order-shard01-b:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-01-node-b
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
-  #   volumes:
-  #     - mongodb_cluster_order_shard01_b_db:/data/db
-  #     - mongodb_cluster_order_shard01_b_config:/data/configdb
-  #   ports:
-  #     - 28123:27017
-  #   restart: always
+  order-shard01-b:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - mongodb_cluster_order_shard01_b_db:/data/db
+      - mongodb_cluster_order_shard01_b_config:/data/configdb
+    ports:
+      - 28123:27017
+    restart: always
 
-  # order-shard01-c:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-01-node-c
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
-  #   volumes:
-  #     - ./order/scripts:/order/scripts
-  #     - mongodb_cluster_order_shard01_c_db:/data/db
-  #     - mongodb_cluster_order_shard01_c_config:/data/configdb
-  #   ports:
-  #     - 28124:27017
-  #   restart: always
+  order-shard01-c:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard01_c_db:/data/db
+      - mongodb_cluster_order_shard01_c_config:/data/configdb
+    ports:
+      - 28124:27017
+    restart: always
 
   ## order_shards 02
   # order-shard02-a:
@@ -328,8 +328,8 @@ services:
     restart: always
     links:
       - payment-shard01-a
-      - payment-shard02-a
-      - payment-shard03-a
+      # - payment-shard02-a
+      # - payment-shard03-a
 
   # payment-configsvr02:
   #   image: mongo:6.0.1

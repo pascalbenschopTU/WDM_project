@@ -16,13 +16,13 @@ spec:
               name: order-service
               port:
                 number: 5000
-        # - path: /stock/?(.*)
-        #   pathType: Prefix
-        #   backend:
-        #     service:
-        #       name: stock-service
-        #       port:
-        #         number: 5000
+        - path: /stock/?(.*)
+          pathType: Prefix
+          backend:
+            service:
+              name: stock-service
+              port:
+                number: 5000
         - path: /payment/?(.*)
           pathType: Prefix
           backend:
