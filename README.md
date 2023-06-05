@@ -27,10 +27,50 @@ First run `docker-compose up --build` to get all the web services running, then 
 
 #### minikube (local k8s cluster)
 
-This setup is for local k8s testing to see if your k8s config works before deploying to the cloud.
-First deploy your database using helm by running the `deploy-charts-minicube.sh` file (in this example the DB is Redis
-but you can find any database you want in https://artifacthub.io/ and adapt the script). Then adapt the k8s configuration files in the
-`\k8s` folder to mach your system and then run `kubectl apply -f .` in the k8s folder.
+- install minikube
+- add helm to path
+
+Run the following commands to set up a local cluster:
+
+```
+minikube start
+```
+
+Install ingress and rabbitmq
+```
+helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
+
+helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq
+```
+If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
+
+Pull order-service (can also be done without docker)
+```
+& minikube -p minikube docker-env --shell powershell | Invoke-Expression (temporarily for pulling image)
+
+docker-compose build rabbitmq (temporarily for pulling image)
+
+docker-compose build order-service (temporarily for pulling image)
+
+kubectl apply -f .\k8s_final\ (will be renamed)
+```
+
+Wait for the ingress to be ready, repeat `kubectl get pods` until all ready.`
+
+
+```
+database_setup_k8s.sh
+
+minikube tunnel
+```
+
+MongoServerError: Rejecting initiate with a set name that differs from command line set name, initiate set name: rs-order_shard-03, command line set name: order_rs-shard-03
+
+The application should now be avaibable on `localhost`. You can reach it by using curl:
+
+F.e.:
+
+`curl -i -X POST http://localhost/payment/create_user` 
 
 **_Requirements:_** You need to have minikube (with ingress enabled) and helm installed on your machine.
 

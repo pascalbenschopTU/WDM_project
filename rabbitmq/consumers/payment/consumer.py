@@ -5,8 +5,7 @@ PAYMENT_URL = "http://payment-service:5000"
 
 
 # define channels
-connection = pika.BlockingConnection( #rabbitmq
-    pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
+connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
 channel = connection.channel()
 ## Forwards to stock.
 channel.queue_declare(queue="payment", durable=True)
