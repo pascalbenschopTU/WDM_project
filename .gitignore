@@ -5,4 +5,8 @@
 **/venv
 rabbitmq/**/log.txt
 postgres-data
+<<<<<<< HEAD
 test/my-project-env
+=======
+**/node_modules
+>>>>>>> main
