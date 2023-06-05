@@ -14,7 +14,8 @@ jobs:
       uses: medyagh/setup-minikube@master
     - name: Install Nginx Ingress Controller
       run: |
-        helm install -f helm-config/nginx-helm-values.yaml nginx https://kubernetes.github.io/ingress-nginx
+        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+        helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
         wait 40s
         kubeclt get pods
     - name: Deploy Kubernetes resources
