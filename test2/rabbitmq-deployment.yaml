@@ -26,14 +26,14 @@ spec:
     spec:
       containers:
         - image: rabbitmq:latest
-          livenessProbe:
-            exec:
-              command:
-                - rabbitmqctl
-                - status
-            failureThreshold: 3
-            periodSeconds: 10
-            timeoutSeconds: 5
+          # livenessProbe:
+          #   exec:
+          #     command:
+          #       - rabbitmqctl
+          #       - status
+          #   failureThreshold: 3
+          #   periodSeconds: 10
+          #   timeoutSeconds: 5
           name: rabbitmq
           ports:
             - containerPort: 5672

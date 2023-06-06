@@ -47,7 +47,6 @@ If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernet
 # setup redis
 helm repo add bitnami https://charts.bitnami.com/bitnami
 
-
 helm install my-release \
    --set usePassword=false \
     oci://registry-1.docker.io/bitnamicharts/redis-cluster
@@ -64,8 +63,6 @@ Again, wait for the containers to be ready, repeat `kubectl get pods` until all 
 Then run database setup for mongo shards, and when finished start the tunnel
 ```
 database_setup_k8s.sh
-
-minikube addons enable ingress
 
 minikube tunnel
 ```
