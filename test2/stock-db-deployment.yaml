@@ -1,90 +1,50 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o .\test2\
-    kompose.version: 1.28.0 (c4137012e)
-  creationTimestamp: null
-  labels:
-    io.kompose.service: stock-db
   name: stock-db
+  labels:
+    app: stock-db
+    tier: database
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: stock-db
+      app: stock-db
   strategy:
     type: Recreate
   template:
     metadata:
-      annotations:
-        kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o .\test2\
-        kompose.version: 1.28.0 (c4137012e)
-      creationTimestamp: null
       labels:
-        io.kompose.network/wdm-default: "true"
-        io.kompose.service: stock-db
+        app: stock-db
+        tier: database
     spec:
       containers:
-        - env:
-            - name: POSTGRES_DB
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_DB
-                  name: env-stock-postgresql-env
-            - name: POSTGRES_HOST
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_HOST
-                  name: env-stock-postgresql-env
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PASSWORD
-                  name: env-stock-postgresql-env
-            - name: POSTGRES_PORT
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_PORT
-                  name: env-stock-postgresql-env
-            - name: POSTGRES_USER
-              valueFrom:
-                configMapKeyRef:
-                  key: POSTGRES_USER
-                  name: env-stock-postgresql-env
+        - name: postgresql
           image: postgres:latest
-          livenessProbe:
-            exec:
-              command:
-                - pg_isready
-            failureThreshold: 5
-            periodSeconds: 15
-            timeoutSeconds: 5
-          name: stock-db
+          imagePullPolicy: "Always"
+          env:
+            - name: POSTGRES_DB
+              value: stock
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+            - name: POSTGRES_HOST
+              value: stock-db
           ports:
             - containerPort: 5432
-          resources: {}
+              name: postgresql
           volumeMounts:
-            - mountPath: /var/lib/postgresql/data
-              name: stock-db-claim0
-            - mountPath: /docker-entrypoint-initdb.d/create_db.sql
-              name: stock-db-claim1
-            - mountPath: /docker-entrypoint-initdb.d/create_table.sql
-              name: stock-db-claim2
-            - mountPath: /docker-entrypoint-initdb.d/create_user.sql
-              name: stock-db-claim3
-      restartPolicy: Always
+            - name: stock-db-claim0
+              mountPath: /var/lib/postgresql/data
+
+            - mountPath: /docker-entrypoint-initdb.d
+              name: postgresql-initdb
       volumes:
         - name: stock-db-claim0
           persistentVolumeClaim:
             claimName: stock-db-claim0
-        - name: stock-db-claim1
-          persistentVolumeClaim:
-            claimName: stock-db-claim1
-        - name: stock-db-claim2
-          persistentVolumeClaim:
-            claimName: stock-db-claim2
-        - name: stock-db-claim3
-          persistentVolumeClaim:
-            claimName: stock-db-claim3
-status: {}
+
+        - name: postgresql-initdb
+          configMap:
+            name: stock-initdb-config
