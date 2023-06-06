@@ -76,8 +76,10 @@ def add_item(order_id, item_id):
     
     orders.update_one(
         {'_id': ObjectId(order_id)}, 
-        {'$set': {f'items.{item_id}': item_price}},
-        {'$inc': {'total_price': item_price}},
+        {
+            '$set': {f'items.{item_id}': item_price},
+            '$inc': {'total_price': item_price}
+        },
     )
 
     return f'Added item {item_id} to the order', 200
@@ -99,11 +101,15 @@ def remove_item(order_id, item_id):
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
 
     orders.update_one(
-        {'_id': ObjectId(order_id)}, 
-        {'$unset': {f'items.{item_id}'}},
-        {'$inc': {'total_price': -order.items[item_id]}},
+        {
+            '_id': ObjectId(order_id)
+        }, 
+        {
+            '$unset': {f'items.{item_id}'},
+            '$inc': {'total_price': -order.items[item_id]}
+        }
     )
-    
+
     return f'Removed item {item_id} from the order', 200
 
 
