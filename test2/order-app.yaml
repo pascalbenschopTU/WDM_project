@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: ghcr.io/leonkempen/wdm-order:latest
+          image: ghcr.io/nobert1/order-service:latest
           resources:
             limits:
               memory: "1Gi"
