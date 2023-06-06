@@ -47,23 +47,19 @@ If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernet
 # setup redis
 helm repo add bitnami https://charts.bitnami.com/bitnami
 
-<!-- helm install my-release bitnami/redis-cluster --set redis.password="a" --set auth.password="a" --set password="a" -->
-   \
-
- <!-- --set password=a
- --set usePassword=false -->
 
 helm install my-release \
    --set usePassword=false \
     oci://registry-1.docker.io/bitnamicharts/redis-cluster
 
-Check they are running: kubectl cluster-info
+Check they are running: kubectl get pods
 
 # build images with minikube
 Go to stock and rabbitmq/consumers/stock
-docker build -t <image-name> .
-minikube image load <image-name>
-Then you don't have to host it
+docker build -t <image-name> . in stock úse stock-app, and in rabbitmq/consumers/stock use stock-consumer
+Afterwards run minikube image load <image-name> in both of them. 
+
+Then you don't have to host them. If you want to host them change the paths in stock-app.yaml and stock-consumer-deployment.yaml
 
 Apply the k8s scripts
 ```
