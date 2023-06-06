@@ -67,23 +67,19 @@ def remove_order(order_id):
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
-    # Find the order
-    order = get_order(order_id)
-
-    # Case where the other is not found
-    if order is None:
-        return f'Could not find an order with order_id {order_id}', 400
-
     # Find the item
     response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
     if response.status_code == 404:
         return f'Could not find {item_id}', 404
-
+    
     item_price = response.json()['price']   
     
-    order.items[item_id] = item_price
-    order.total_price += item_price
-    store_order(order)
+    orders.update_one(
+        {'_id': ObjectId(order_id)}, 
+        {'$set': {f'items.{item_id}': item_price}},
+        {'$inc': {'total_price': item_price}},
+    )
+
     return f'Added item {item_id} to the order', 200
 
 
@@ -101,11 +97,13 @@ def remove_item(order_id, item_id):
     # Check if the order contains the item to remove
     if not item_id in order.items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
-    else:
-        order.total_price -= order.items[item_id]
-        order.items.pop(item_id)
 
-    store_order(order)
+    orders.update_one(
+        {'_id': ObjectId(order_id)}, 
+        {'$unset': {f'items.{item_id}'}},
+        {'$inc': {'total_price': -order.items[item_id]}},
+    )
+    
     return f'Removed item {item_id} from the order', 200
 
 
