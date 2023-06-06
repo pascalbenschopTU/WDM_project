@@ -9,16 +9,22 @@ from aio_pika.pool import Pool
 import aio_pika
 import json
 import aioredis_cluster
+import os
 
 operations_queue = asyncio.Queue()
 global_channel = None        
-
+basic_redis_url = os.environ['BASIC_REDIS_URL']
 # Define a list of connections to your Redis instances:
-connection_urls = ["redis://:a@my-release-redis-cluster-0", 
-                   "redis://:a@my-release-redis-cluster-1", 
-                   "redis://:a@my-release-redis-cluster-2", "redis::a@//my-release-redis-cluster-4", 
-                   "redis://:a@my-release-redis-cluster-6", "redis::a@//my-release-redis-cluster-5"
+connection_urls = [
+                    basic_redis_url + "0",
+                    basic_redis_url + "1",
+                    basic_redis_url + "2",
+                    basic_redis_url + "3",
+                    basic_redis_url + "4",
+                    basic_redis_url + "5",
+                    basic_redis_url[:-1]
                    ]
+print("last url:", basic_redis_url + "5")
 RABBIT_URI = "amqp://guest:guest@rabbitmq/"
 redis_global = None
 prefetch_count = 1
@@ -68,7 +74,8 @@ async def main() -> None:
     loop = asyncio.get_event_loop()
     connection_pool = Pool(get_connection, max_size=3)
     
-    redis = await connect_redis(connection_urls, 0)
+    # redis = await connect_redis(connection_urls, 0)
+    redis = await aioredis_cluster.create_redis_cluster(connection_urls)
     global redis_global
     redis_global = redis
     

@@ -9,7 +9,7 @@ metadata:
     io.kompose.service: stock-consumer
   name: stock-consumer
 spec:
-  replicas: 5
+  replicas: 1
   selector:
     matchLabels:
       io.kompose.service: stock-consumer
@@ -55,7 +55,14 @@ spec:
                 configMapKeyRef:
                   key: POSTGRES_USER
                   name: env-stock-postgresql-env
-          image: stock-consumer
+            - name: POSTGRES_USER
+              valueFrom:
+                configMapKeyRef:
+                  key: POSTGRES_USER
+                  name: env-stock-postgresql-env
+            - name: BASIC_REDIS_URL
+              value: redis://my-release-redis-cluster-
+          image: stock-consumer-newest
           imagePullPolicy: Never
           name: stock-consumer
           resources: {}
