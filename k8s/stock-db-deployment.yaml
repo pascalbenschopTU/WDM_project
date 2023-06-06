@@ -1,17 +1,15 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: stock-db
   labels:
     app: stock-db
     tier: database
 spec:
-  replicas: 1
+  replicas: 3
   selector:
     matchLabels:
       app: stock-db
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
