@@ -74,7 +74,7 @@ def add_item(order_id, item_id):
     
     item_price = response.json()['price']   
     
-    orders.update_one(
+    result = orders.update_one(
         {'_id': ObjectId(order_id)}, 
         {
             '$set': {f'items.{item_id}': item_price},
@@ -82,6 +82,9 @@ def add_item(order_id, item_id):
         },
     )
 
+    if result.modified_count != 1:
+        return {'Error': 'Order not found'}, 404
+    
     return f'Added item {item_id} to the order', 200
 
 
@@ -100,7 +103,7 @@ def remove_item(order_id, item_id):
     if not item_id in order.items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
 
-    orders.update_one(
+    result = orders.update_one(
         {
             '_id': ObjectId(order_id)
         }, 
@@ -109,7 +112,9 @@ def remove_item(order_id, item_id):
             '$inc': {'total_price': -order.items[item_id]}
         }
     )
-
+    if result.modified_count != 1:
+        return {'Error': 'Item not found'}, 404
+    
     return f'Removed item {item_id} from the order', 200
 
 
@@ -151,8 +156,17 @@ def checkout(order_id):
 
         if not (200 <= payment_response.status_code < 300):
             raise Exception("Not enough credit") 
-        order.paid = True
-        store_order(order)
+        result = orders.update_one(
+            {
+                '_id': ObjectId(order_id)
+            }, 
+            {
+                '$set': {f'paid': True},
+            }
+        )
+
+        if result.modified_count != 1:
+            return {'Error': 'Order not found'}, 404
     except Exception as e:
         # Roll back the reserved items
         message = "inc,"
