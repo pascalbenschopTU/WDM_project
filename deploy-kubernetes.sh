@@ -11,6 +11,8 @@ do
     sleep 5
 done
 
+sleep 20
+
 ECHO "Ingress started!"
 
 ECHO "Installing Redis"
