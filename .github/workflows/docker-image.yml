@@ -17,12 +17,12 @@ jobs:
         helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
         helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
         sleep 40
-        kubeclt get pods
+        kubectl get pods
     - name: Deploy Kubernetes resources
       run: |
         kubectl apply -f ./test2/
         sleep 40
-        kubeclt get pods
+        kubectl get pods
     - name: Run database setup script
       run: ./database_setup_k8s.sh
     - name: Start Minikube tunnel
