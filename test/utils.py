@@ -1,6 +1,11 @@
 import requests
+<<<<<<< HEAD
 import uuid
 ORDER_URL = STOCK_URL = PAYMENT_URL = "http://127.0.0.1:8000"
+=======
+
+ORDER_URL = STOCK_URL = PAYMENT_URL = "http://localhost"
+>>>>>>> be9f5020f7a6fa68d514c3379686cd9006a278ae
 
 
 ########################################################################################################################

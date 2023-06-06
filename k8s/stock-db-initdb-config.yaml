@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: stock-initdb-config
+data:
+  init.sql: |
+    \c postgres
+    DROP DATABASE IF EXISTS stock;
+    CREATE DATABASE stock;
+    \c stock
+
+    CREATE TABLE stock (
+        id SERIAL PRIMARY KEY,
+        price INT NOT NULL,
+        stock INT NOT NULL
+    );
+
+    CREATE ROLE postgres superuser;
+    CREATE USER postgres;
+    GRANT ROOT TO postgres;
+    GRANT ALL privileges ON DATABASE stock to postgres;
+    
