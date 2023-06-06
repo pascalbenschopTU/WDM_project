@@ -70,8 +70,6 @@ minikube addons enable ingress
 
 minikube tunnel
 ```
-
-
 The application should now be avaibable on `localhost`. You can reach it by using curl:
 
 F.e.:
