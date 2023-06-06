@@ -47,11 +47,10 @@ If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernet
 # setup redis
 helm repo add bitnami https://charts.bitnami.com/bitnami
 
-helm install my-release \
-   --set usePassword=false \
-    oci://registry-1.docker.io/bitnamicharts/redis-cluster
-
-Check they are running: kubectl get pods
+```
+helm install my-release --set usePassword=false oci://registry-1.docker.io/bitnamicharts/redis-cluster
+```
+Check they are running: `kubectl get pods`
 
 # build images with minikube
 Apply the k8s scripts
