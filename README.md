@@ -1,5 +1,13 @@
 # Web-scale Data Management Project
 
+Consistent, but not so fast
+
+## Important files
+
+[Report](docs/Report%20Group%2011.pdf)
+
+[Presentation](https://docs.google.com/presentation/d/1PesHJU-yyWcWwmcaJ2uwwNRkNwejb74hq5nP1UKZf68/edit?usp=sharing)
+
 ### Project structure
 
 - `env`
