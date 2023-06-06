@@ -5,6 +5,6 @@ CREATE TABLE stock (
     stock INT NOT NULL
 );
 
-CREATE TABLE idempotency_key (
+CREATE TABLE idempotency_keys (
     idempotency_key TEXT NOT NULL PRIMARY KEY,
 );
