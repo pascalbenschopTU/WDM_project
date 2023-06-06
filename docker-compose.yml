@@ -13,94 +13,263 @@ services:
       - "5672:5672"
       - "15672:15672"
 
-  gateway:
-    image: nginx:latest
-    volumes:
-      - ./gateway_nginx.conf:/etc/nginx/nginx.conf:ro
+  # gateway:
+  #   image: nginx:latest
+  #   volumes:
+  #     - ./gateway_nginx.conf:/etc/nginx/nginx.conf:ro
+  #   ports:
+  #     - "8000:80"
+  #   depends_on:
+  #     - order-service
+  #     - stock-service
+  #     - payment-service
+
+  # order-service:
+  #   build: ./order
+  #   #image: order:latest
+  #   image: ghcr.io/leonkempen/wdm-order:latest
+  #   command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
+  #   env_file:
+  #     - env/order-mongodb.env
+  #   environment:
+  #     - GATEWAY_URL=http://gateway:80
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+
+  # ## Order Router
+  order-router01:
+    image: mongo:6.0.1
+    container_name: order_router-01
+    command: mongos --port 27017 --configdb order_rs-config-server/order-configserver01:28119,order-configserver02:28120,order-configserver03:28121 --bind_ip_all
     ports:
-      - "8000:80"
-    depends_on:
-      - order-service
-      - stock-service
-      - payment-service
-
-  order-service:
-    build: ./order
-    image: order:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --reload --timeout 10
-    env_file:
-      - env/order_mongodb.env
-    environment:
-      - GATEWAY_URL=http://gateway:80
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      order-mongodb:
-        condition: service_started
-
-  order-mongodb:
-    image: mongo:latest
-    restart: unless-stopped
-    container_name: order-mongodb
-    command: mongod --auth
-    ports:
-      - 27018:27018
-    volumes:
-      - order_mongodb_data:/data/db
-      - ./order/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
-    env_file:
-      - env/order_mongodb_init.env
-
-  stock-service:
-    build: ./stock
-    image: stock:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    env_file:
-      - env/stock_postgresql.env
-    environment:
-      - GATEWAY_URL=http://gateway:80
+      - 28017:27017
     restart: always
-    depends_on:
-      stock-db:
-        condition: service_healthy
-
-  stock-db:
-    image: postgres:latest
-    restart: always
-    env_file:
-      - env/stock_postgresql.env
-    logging:
-      options:
-        max-size: 10m
-        max-file: "3"
-    ports:
-      - "5432:5432"
     volumes:
-      - ./postgres-data:/var/lib/postgresql/data
-      - ./stock/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
-      - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
-      - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - mongodb_cluster_order_router01_db:/data/db
+      - mongodb_cluster_order_router01_config:/data/configdb
 
-  payment-service:
-    build: ./payment
-    image: payment:latest
-    command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
-    env_file:
-      - env/payment_mongodb.env
-    environment:
-      - GATEWAY_URL=http://gateway:80
+  order-router02:
+    image: mongo:6.0.1
+    container_name: order_router-02
+    command: mongos --port 27017 --configdb order_rs-config-server/order-configserver01:28119,order-configserver02:28120,order-configserver03:28121
+    volumes:
+      - mongodb_cluster_order_router02_db:/data/db
+      - mongodb_cluster_order_router02_config:/data/configdb
+    ports:
+      - 28118:27017
+    restart: always
+    links:
+      - order-router01
+
+  ## Config Servers
+  order-configserver01:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-01
+    command: mongod --port 27017 --configsvr --replSet order_rs-config-server
+    volumes:
+      - mongodb_cluster_order_configserver01_db:/data/db
+      - mongodb_cluster_order_configserver01_config:/data/configdb
+    ports:
+      - 28119:27017
+    restart: always
+    links:
+      - order-shard01-a
+      - order-shard02-a
+      - order-shard03-a
+
+  order-configserver02:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-02
+    command: mongod --port 27017 --configsvr  --replSet order_rs-config-server
+    volumes:
+      - mongodb_cluster_order_configserver02_db:/data/db
+      - mongodb_cluster_order_configserver02_config:/data/configdb
+    ports:
+      - 28120:27017
+    restart: always
+    links:
+      - order-configserver01
+
+  order-configserver03:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-03
+    command: mongod --port 27017 --configsvr  --replSet order_rs-config-server
+    volumes:
+      - mongodb_cluster_order_configserver03_db:/data/db
+      - mongodb_cluster_order_configserver03_config:/data/configdb
+    ports:
+      - 28121:27017
+    restart: always
+    links:
+      - order=configserver02
+
+  ## order_shards
+  ## order_shards 01
+
+  order-shard01-a:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - mongodb_cluster_order_shard01_a_db:/data/db
+      - mongodb_cluster_order_shard01_a_config:/data/configdb
+    ports:
+      - 28122:27017
+    restart: always
+    links:
+      - order-shard01-b
+      - order-shard01-c
+
+  order-shard01-b:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - mongodb_cluster_order_shard01_b_db:/data/db
+      - mongodb_cluster_order_shard01_b_config:/data/configdb
+    ports:
+      - 28123:27017
+    restart: always
+
+  order-shard01-c:
+    image: mongo:6.0.1
+    container_name: order_shard-01-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-01
+    volumes:
+      - mongodb_cluster_order_shard01_c_db:/data/db
+      - mongodb_cluster_order_shard01_c_config:/data/configdb
+    ports:
+      - 28124:27017
+    restart: always
+
+  # order_shards 02
+  order-shard02-a:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - mongodb_cluster_order_shard02_a_db:/data/db
+      - mongodb_cluster_order_shard02_a_config:/data/configdb
+    ports:
+      - 28125:27017
+    restart: always
+    links:
+      - order-shard02-b
+      - order-shard02-c
+
+  order-shard02-b:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - mongodb_cluster_order_shard02_b_db:/data/db
+      - mongodb_cluster_order_shard02_b_config:/data/configdb
+    ports:
+      - 28126:27017
+    restart: always
+
+  order-shard02-c:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard02_c_db:/data/db
+      - mongodb_cluster_order_shard02_c_config:/data/configdb
+    ports:
+      - 28127:27017
+    restart: always
+
+  # order_shards 03
+  order-shard03-a:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - mongodb_cluster_order_shard03_a_db:/data/db
+      - mongodb_cluster_order_shard03_a_config:/data/configdb
+    ports:
+      - 28128:27017
+    restart: always
+    links:
+      - order-shard03-b
+      - order-shard03-c
+
+  order-shard03-b:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - mongodb_cluster_order_shard03_b_db:/data/db
+      - mongodb_cluster_order_shard03_b_config:/data/configdb
+    ports:
+      - 28129:27017
+    restart: always
+
+  order-shard03-c:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - mongodb_cluster_order_shard03_c_db:/data/db
+      - mongodb_cluster_order_shard03_c_config:/data/configdb
+    ports:
+      - 28130:27017
+    restart: always
+
+  # stock-service:
+  #   build: ./stock
+  #   #image: stock:latest
+  #   image: ghcr.io/leonkempen/wdm-stock:latest
+  #   command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+  #   env_file:
+  #     - env/stock-postgresql.env
+  #   environment:
+  #     - GATEWAY_URL=http://gateway:80
+  #   restart: always
+  #   depends_on:
+  #     stock-db:
+  #       condition: service_healthy
+
+  # stock-db:
+  #   image: postgres:latest
+  #   restart: always
+  #   env_file:
+  #     - env/stock-postgresql.env
+  #   logging:
+  #     options:
+  #       max-size: 10m
+  #       max-file: "3"
+  #   ports:
+  #     - "5432:5432"
+  #   volumes:
+  #     - ./postgres-data:/var/lib/postgresql/data
+  #     - ./stock/create_db.sql:/docker-entrypoint-initdb.d/create_db.sql
+  #     - ./stock/create_table.sql:/docker-entrypoint-initdb.d/create_table.sql
+  #     - ./stock/create_user.sql:/docker-entrypoint-initdb.d/create_user.sql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 5
+
+  # payment-service:
+  #   build: ./payment
+  #   image: ghcr.io/leonkempen/wdm-payment:latest
+  #   command: gunicorn -b 0.0.0.0:5000 app:app -w 1 --timeout 10
+  #   env_file:
+  #     - env/payment-mongodb.env
+  #   environment:
+  #     - GATEWAY_URL=http://gateway:80
 
   payment-consumer:
     build: ./rabbitmq/consumers/payment
-    image: payment-consumer:latest
+    #image: payment-consumer:latest
+    image: ghcr.io/leonkempen/wdm-payment-consumer:latest
     command: python consumer.py
     env_file:
-      - env/payment_mongodb.env
+      - env/payment-mongodb.env
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -109,10 +278,11 @@ services:
 
   stock-consumer:
     build: ./rabbitmq/consumers/stock
-    image: stock-consumer:latest
+    #image: stock-consumer:latest
+    image: ghcr.io/leonkempen/wdm-stock-consumer:latest
     command: python consumer.py
     env_file:
-      - env/stock_postgresql.env
+      - env/stock-postgresql.env
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -120,154 +290,143 @@ services:
       - ./rabbitmq/consumers/stock:/HOME/FLASK-APP
 
   ## Payment routers
-  payment_router01:
+  payment-router01:
     image: mongo:6.0.1
     container_name: payment_router-01
-    command: mongos --port 27017 --configdb payment_rs-config-server/payment_configsvr01:27017,payment_configsvr02:27017,payment_configsvr03:27017 --bind_ip_all
+    command: mongos --port 27017 --configdb payment_rs-config-server/payment-configsvr01:27119 --bind_ip_all #,payment-configsvr02:27120,payment-configsvr03:27121 --bind_ip_all
     ports:
-      - 27017:27017
+      - 29017:27017
     restart: always
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_router01_db:/data/db
       - payment_mongodb_cluster_router01_config:/data/configdb
 
-  payment_router02:
+  payment-router02:
     image: mongo:6.0.1
     container_name: payment_router-02
-    command: mongos --port 27017 --configdb payment_rs-config-server/payment_configsvr01:27017,payment_configsvr02:27017,payment_configsvr03:27017 --bind_ip_all
+    command: mongos --port 27017 --configdb payment_rs-config-server/payment-configsvr01:27119,payment-configsvr02:27120,payment-configsvr03:27121 --bind_ip_all
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_router02_db:/data/db
       - payment_mongodb_cluster_router02_config:/data/configdb
     ports:
       - 27118:27017
     restart: always
     links:
-      - payment_router01
+      - payment-router01
 
   ## Payment config Servers
-  payment_configsvr01:
+  payment-configsvr01:
     image: mongo:6.0.1
     container_name: payment_mongo-config-01
-    command: mongod --port 27017 --configsvr --replSet  payment_rs-config-server
+    command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_configsvr01_db:/data/db
       - payment_mongodb_cluster_configsvr01_config:/data/configdb
     ports:
       - 27119:27017
     restart: always
     links:
-      - payment_shard01-a
-      - payment_shard02-a
-      - payment_shard03-a
+      - payment-shard01-a
+      - payment-shard02-a
+      - payment-shard03-a
 
-  payment_configsvr02:
+  payment-configsvr02:
     image: mongo:6.0.1
     container_name: payment_mongo-config-02
     command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_configsvr02_db:/data/db
       - payment_mongodb_cluster_configsvr02_config:/data/configdb
     ports:
       - 27120:27017
     restart: always
     links:
-      - payment_configsvr01
+      - payment-configsvr01
 
-  payment_configsvr03:
+  payment-configsvr03:
     image: mongo:6.0.1
     container_name: payment_mongo-config-03
     command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
     volumes:
-      - ./payment/scripts:/payment/scripts
+      - .\payment\scripts:/payment\scripts
       - payment_mongodb_cluster_configsvr03_db:/data/db
       - payment_mongodb_cluster_configsvr03_config:/data/configdb
     ports:
       - 27121:27017
     restart: always
     links:
-      - payment_configsvr02
+      - payment-configsvr02
 
   ## Payment shards
 
   ## Payment shard 01
-
-  payment_shard01-a:
+  payment-shard01-a:
     image: mongo:6.0.1
     container_name: payment_shard-01-node-a
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-01
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard01_a_db:/data/db
       - payment_mongodb_cluster_shard01_a_config:/data/configdb
     ports:
       - 27122:27017
     restart: always
     links:
-      - payment_shard01-b
-      - payment_shard01-c
+      - payment-shard01-b
+      - payment-shard01-c
 
-  payment_shard01-b:
+  payment-shard01-b:
     image: mongo:6.0.1
     container_name: payment_shard-01-node-b
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-01
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard01_b_db:/data/db
       - payment_mongodb_cluster_shard01_b_config:/data/configdb
     ports:
       - 27123:27017
     restart: always
 
-  payment_shard01-c:
+  payment-shard01-c:
     image: mongo:6.0.1
     container_name: payment_shard-01-node-c
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-01
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard01_c_db:/data/db
       - payment_mongodb_cluster_shard01_c_config:/data/configdb
     ports:
       - 27124:27017
     restart: always
-
   ## Payment shard 02
-  payment_shard02-a:
+  
+  payment-shard02-a:
     image: mongo:6.0.1
     container_name: payment_shard-02-node-a
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-02
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard02_a_db:/data/db
       - payment_mongodb_cluster_shard02_a_config:/data/configdb
     ports:
       - 27125:27017
     restart: always
     links:
-      - payment_shard02-b
-      - payment_shard02-c
+      - payment-shard02-b
+      - payment-shard02-c
 
-  payment_shard02-b:
+  payment-shard02-b:
     image: mongo:6.0.1
     container_name: payment_shard-02-node-b
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-02
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard02_b_db:/data/db
       - payment_mongodb_cluster_shard02_b_config:/data/configdb
     ports:
       - 27126:27017
     restart: always
 
-  payment_shard02-c:
+  payment-shard02-c:
     image: mongo:6.0.1
     container_name: payment_shard-02-node-c
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-02
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard02_c_db:/data/db
       - payment_mongodb_cluster_shard02_c_config:/data/configdb
     ports:
@@ -275,39 +434,36 @@ services:
     restart: always
 
   ## Payment shard 03
-  payment_shard03-a:
+  payment-shard03-a:
     image: mongo:6.0.1
     container_name: payment_shard-03-node-a
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-03
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard03_a_db:/data/db
       - payment_mongodb_cluster_shard03_a_config:/data/configdb
     ports:
       - 27128:27017
     restart: always
     links:
-      - payment_shard03-b
-      - payment_shard03-c
+      - payment-shard03-b
+      - payment-shard03-c
 
-  payment_shard03-b:
+  payment-shard03-b:
     image: mongo:6.0.1
     container_name: payment_shard-03-node-b
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-03
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard03_b_db:/data/db
       - payment_mongodb_cluster_shard03_b_config:/data/configdb
     ports:
       - 27129:27017
     restart: always
 
-  payment_shard03-c:
+  payment-shard03-c:
     image: mongo:6.0.1
     container_name: payment_shard-03-node-c
     command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-03
     volumes:
-      - ./payment/scripts:/payment/scripts
       - payment_mongodb_cluster_shard03_c_db:/data/db
       - payment_mongodb_cluster_shard03_c_config:/data/configdb
     ports:
@@ -321,6 +477,48 @@ volumes:
     driver: local
   stock_postgres_data:
     driver: local
+
+  mongodb_cluster_order_router01_db:
+  mongodb_cluster_order_router01_config:
+
+  mongodb_cluster_order_router02_db:
+  mongodb_cluster_order_router02_config:
+
+  mongodb_cluster_order_configserver01_db:
+  mongodb_cluster_order_configserver01_config:
+
+  mongodb_cluster_order_configserver02_db:
+  mongodb_cluster_order_configserver02_config:
+
+  mongodb_cluster_order_configserver03_db:
+  mongodb_cluster_order_configserver03_config:
+
+  mongodb_cluster_order_shard01_a_db:
+  mongodb_cluster_order_shard01_a_config:
+
+  mongodb_cluster_order_shard01_b_db:
+  mongodb_cluster_order_shard01_b_config:
+
+  mongodb_cluster_order_shard01_c_db:
+  mongodb_cluster_order_shard01_c_config:
+
+  mongodb_cluster_order_shard02_a_db:
+  mongodb_cluster_order_shard02_a_config:
+
+  mongodb_cluster_order_shard02_b_db:
+  mongodb_cluster_order_shard02_b_config:
+
+  mongodb_cluster_order_shard02_c_db:
+  mongodb_cluster_order_shard02_c_config:
+
+  mongodb_cluster_order_shard03_a_db:
+  mongodb_cluster_order_shard03_a_config:
+
+  mongodb_cluster_order_shard03_b_db:
+  mongodb_cluster_order_shard03_b_config:
+
+  mongodb_cluster_order_shard03_c_db:
+  mongodb_cluster_order_shard03_c_config:
 
   payment_mongodb_cluster_router01_db:
   payment_mongodb_cluster_router01_config:

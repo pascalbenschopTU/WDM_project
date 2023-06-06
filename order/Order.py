@@ -1,5 +1,3 @@
-import json
-
 class Order:
     order_id: int
     user_id: int

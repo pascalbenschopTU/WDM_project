@@ -4,5 +4,5 @@
 **/__pycache__
 **/venv
 rabbitmq/**/log.txt
-postgres-data
+postgres-data/**
 **/node_modules

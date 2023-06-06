@@ -9,13 +9,20 @@ from Order import Order
 
 STOCK_URL = "http://stock-service:5000"
 PAYMENT_URL = "http://payment-service:5000"
-gateway_url = os.environ['GATEWAY_URL']
 
 app = Flask("order-service")
 
-app.config["MONGO_URI"] = f"mongodb://{os.environ['MONGODB_USERNAME']}:{os.environ['MONGODB_PASSWORD']}@{os.environ['MONGODB_HOSTNAME']}:27017/{os.environ['MONGODB_DATABASE']}"
+hostname = os.environ['MONGODB_HOSTNAME']
+hostname2 = os.environ['MONGODB_HOSTNAME_2']
+database = os.environ['MONGODB_DATABASE']
+gateway_url = os.environ['GATEWAY_URL']
+
+
+app.config["MONGO_URI"] = f"mongodb://{hostname}:28017,{hostname2}:28118/{database}"
+
 mongo = PyMongo(app)
 db = mongo.db
+orders = db.orders
 
 ## define channels
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='rabbitmq', port=5672, heartbeat=600, blocked_connection_timeout=300))
@@ -25,8 +32,7 @@ channel.queue_declare(queue="payment", durable=True)
 
 
 def get_order(order_id: int) -> Order:
-    collection = db.orders
-    order = collection.find_one({'_id': ObjectId(order_id)})
+    order = orders.find_one({'_id': ObjectId(order_id)})
     
     # Check if we found an order with the given id
     if order is None or None in order:
@@ -36,21 +42,20 @@ def get_order(order_id: int) -> Order:
     return Order.from_mongo_output(order)
 
 def store_order(order: Order):
-    collection = db.orders
-    collection.update_one({'_id': ObjectId(order.order_id)}, {'$set': order.to_mongo_input()}, upsert=True)
+    orders.update_one(
+        {'_id': ObjectId(order.order_id)}, 
+        {'$set': order.to_mongo_input()}
+    )
 
 @app.post('/create/<user_id>')
 def create_order(user_id):
-    collection = db.orders
-    order = collection.insert_one(Order.create_empty(user_id))
+    order = orders.insert_one(Order.create_empty(user_id))
     order_id = order.inserted_id
-
     return {"order_id": str(order_id)}, 200
 
 @app.delete('/remove/<order_id>')
 def remove_order(order_id):
-    collection = db.orders
-    result = collection.delete_one({'_id': ObjectId(order_id)})
+    result = orders.delete_one({'_id': ObjectId(order_id)})
 
     # Check if we deleted an order
     if result.deleted_count == 1:
@@ -62,23 +67,24 @@ def remove_order(order_id):
 
 @app.post('/addItem/<order_id>/<item_id>')
 def add_item(order_id, item_id):
-    # Find the order
-    order = get_order(order_id)
-
-    # Case where the other is not found
-    if order is None:
-        return f'Could not find an order with order_id {order_id}', 400
-
     # Find the item
     response: requests.Response = requests.get(f"{STOCK_URL}/find/{item_id}")
     if response.status_code == 404:
         return f'Could not find {item_id}', 404
-
+    
     item_price = response.json()['price']   
     
-    order.items[item_id] = item_price
-    order.total_price += item_price
-    store_order(order)
+    result = orders.update_one(
+        {'_id': ObjectId(order_id)}, 
+        {
+            '$set': {f'items.{item_id}': item_price},
+            '$inc': {'total_price': item_price}
+        },
+    )
+
+    if result.modified_count != 1:
+        return {'Error': 'Order not found'}, 404
+    
     return f'Added item {item_id} to the order', 200
 
 
@@ -96,11 +102,19 @@ def remove_item(order_id, item_id):
     # Check if the order contains the item to remove
     if not item_id in order.items:
         return f'The order with id {order_id} did not contain an item with id {item_id}', 400      
-    else:
-        order.total_price -= order.items[item_id]
-        order.items.pop(item_id)
 
-    store_order(order)
+    result = orders.update_one(
+        {
+            '_id': ObjectId(order_id)
+        }, 
+        {
+            '$unset': {f'items.{item_id}'},
+            '$inc': {'total_price': -order.items[item_id]}
+        }
+    )
+    if result.modified_count != 1:
+        return {'Error': 'Item not found'}, 404
+    
     return f'Removed item {item_id} from the order', 200
 
 
@@ -142,8 +156,17 @@ def checkout(order_id):
 
         if not (200 <= payment_response.status_code < 300):
             raise Exception("Not enough credit") 
-        order.paid = True
-        store_order(order)
+        result = orders.update_one(
+            {
+                '_id': ObjectId(order_id)
+            }, 
+            {
+                '$set': {f'paid': True},
+            }
+        )
+
+        if result.modified_count != 1:
+            return {'Error': 'Order not found'}, 404
     except Exception as e:
         # Roll back the reserved items
         message = "inc,"

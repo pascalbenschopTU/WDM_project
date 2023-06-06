@@ -27,10 +27,42 @@ First run `docker-compose up --build` to get all the web services running, then 
 
 #### minikube (local k8s cluster)
 
-This setup is for local k8s testing to see if your k8s config works before deploying to the cloud.
-First deploy your database using helm by running the `deploy-charts-minicube.sh` file (in this example the DB is Redis
-but you can find any database you want in https://artifacthub.io/ and adapt the script). Then adapt the k8s configuration files in the
-`\k8s` folder to mach your system and then run `kubectl apply -f .` in the k8s folder.
+- install minikube
+- add helm to path
+
+Run the following commands to set up a local cluster:
+
+```
+minikube start
+```
+
+Install ingress via helm
+```
+helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
+```
+Wait for the ingress to be ready, repeat `kubectl get pods` until all ready 1/1.`
+
+If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
+
+Apply the k8s scripts
+```
+kubectl apply -f .\test2\ (will be renamed)
+```
+Again, wait for the containers to be ready, repeat `kubectl get pods` until all ready 1/1.`
+
+Then run database setup for mongo shards, and when finished start the tunnel
+```
+database_setup_k8s.sh
+
+minikube tunnel
+```
+
+
+The application should now be avaibable on `localhost`. You can reach it by using curl:
+
+F.e.:
+
+`curl -i -X POST http://localhost/payment/create_user` 
 
 **_Requirements:_** You need to have minikube (with ingress enabled) and helm installed on your machine.
 
