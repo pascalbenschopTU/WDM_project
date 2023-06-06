@@ -6,14 +6,14 @@ metadata:
     kompose.version: 1.28.0 (c4137012e)
   creationTimestamp: null
   labels:
-    io.kompose.service: payment-router01
-  name: payment-router01
+    io.kompose.service: payment-shard02-a
+  name: payment-shard02-a
 spec:
   ports:
-    - name: "29017"
-      port: 29017
+    - name: "27125"
+      port: 27125
       targetPort: 27017
   selector:
-    io.kompose.service: payment-router01
+    io.kompose.service: payment-shard02-a
 status:
   loadBalancer: {}

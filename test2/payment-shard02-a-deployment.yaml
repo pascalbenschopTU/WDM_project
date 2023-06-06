@@ -6,13 +6,13 @@ metadata:
     kompose.version: 1.28.0 (c4137012e)
   creationTimestamp: null
   labels:
-    io.kompose.service: order-router01
-  name: order-router01
+    io.kompose.service: payment-shard02-a
+  name: payment-shard02-a
 spec:
   replicas: 1
   selector:
     matchLabels:
-      io.kompose.service: order-router01
+      io.kompose.service: payment-shard02-a
   strategy:
     type: Recreate
   template:
@@ -23,32 +23,37 @@ spec:
       creationTimestamp: null
       labels:
         io.kompose.network/wdm-default: "true"
-        io.kompose.service: order-router01
+        io.kompose.service: payment-shard02-a
     spec:
       containers:
         - args:
-            - mongos
+            - mongod
             - --port
             - "27017"
-            - --configdb
-            - order_rs-config-server/order-configserver01:28119
-            - --bind_ip_all
+            - --shardsvr
+            - --replSet
+            - payment_rs-shard-02
           image: mongo:6.0.1
-          name: order-router-01
+          name: payment-shard-02-node-a
           ports:
             - containerPort: 27017
           resources: {}
           volumeMounts:
+            - mountPath: /payment/scripts
+              name: payment-shard02-a-claim0
             - mountPath: /data/db
-              name: mongodb-cluster-order-router01-db
+              name: payment-mongodb-cluster-shard02-a-db
             - mountPath: /data/configdb
-              name: mongodb-cluster-order-router01-config
+              name: payment-mongodb-cluster-shard02-a-config
       restartPolicy: Always
       volumes:
-        - name: mongodb-cluster-order-router01-db
+        - name: payment-shard02-a-claim0
           persistentVolumeClaim:
-            claimName: mongodb-cluster-order-router01-db
-        - name: mongodb-cluster-order-router01-config
+            claimName: payment-shard02-a-claim0
+        - name: payment-mongodb-cluster-shard02-a-db
           persistentVolumeClaim:
-            claimName: mongodb-cluster-order-router01-config
+            claimName: payment-mongodb-cluster-shard02-a-db
+        - name: payment-mongodb-cluster-shard02-a-config
+          persistentVolumeClaim:
+            claimName: payment-mongodb-cluster-shard02-a-config
 status: {}

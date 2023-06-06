@@ -13,8 +13,11 @@ done
 
 ECHO "Ingress started!"
 
-ECHO "Waiting for ingress to start properly"
-sleep 20
+ECHO "Installing Redis"
+
+helm install -f helm-config/redis-helm-values.yaml redis bitnami/redis
+
+ECHO "Redis started!"
 
 ECHO "Applying k8s ymls...."
 

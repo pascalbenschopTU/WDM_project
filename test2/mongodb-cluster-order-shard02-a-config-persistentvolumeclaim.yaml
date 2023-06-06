@@ -3,8 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: order-shard01-c-claim0
-  name: order-shard01-c-claim0
+    io.kompose.service: mongodb-cluster-order-shard02-a-config
+  name: mongodb-cluster-order-shard02-a-config
 spec:
   accessModes:
     - ReadWriteOnce

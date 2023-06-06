@@ -3,8 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
   labels:
-    io.kompose.service: payment-mongodb-cluster-shard01-c-db
-  name: payment-mongodb-cluster-shard01-c-db
+    io.kompose.service: payment-shard02-b-claim0
+  name: payment-shard02-b-claim0
 spec:
   accessModes:
     - ReadWriteOnce
