@@ -36,42 +36,41 @@ Run the following commands to set up a local cluster:
 minikube start
 ```
 
-Install ingress and rabbitmq
+Install ingress via helm
 ```
 helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
-
-helm upgrade --install -f helm-config/rabbitmq-helm-values.yaml rabbitmq oci://registry-1.docker.io/bitnamicharts/rabbitmq
 ```
+Wait for the ingress to be ready, repeat `kubectl get pods` until all ready 1/1.`
+
 If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx`
 
-Pull order-service (can also be done without docker)
-```
-& minikube -p minikube docker-env --shell powershell | Invoke-Expression (temporarily for pulling image)
-
-docker-compose build rabbitmq (temporarily for pulling image)
-
-docker-compose build order-service (temporarily for pulling image)
-
-## bitnami https://docs.bitnami.com/kubernetes/infrastructure/redis-cluster/get-started/install/
+# setup redis
 helm repo add bitnami https://charts.bitnami.com/bitnami
 
-kubectl cluster-info
+helm install my-release bitnami/redis-cluster --set redis.password="a" --set auth.password="a" --set password="a" --set usepassword=false
+Check they are running: kubectl cluster-info
 
-helm install cluster-release bitnami/redis-cluster
+# build images with minikube
+Go to stock and rabbitmq/consumers/stock
+docker build -t <image-name> .
+minikube image load <image-name>
+Then you don't have to host it
 
-kubectl apply -f .\k8s_final\ (will be renamed)
+Apply the k8s scripts
 ```
+kubectl apply -f .\test2\ (will be renamed)
+```
+Again, wait for the containers to be ready, repeat `kubectl get pods` until all ready 1/1.`
 
-Wait for the ingress to be ready, repeat `kubectl get pods` until all ready.`
-
-
+Then run database setup for mongo shards, and when finished start the tunnel
 ```
 database_setup_k8s.sh
+
+minikube addons enable ingress
 
 minikube tunnel
 ```
 
-MongoServerError: Rejecting initiate with a set name that differs from command line set name, initiate set name: rs-order_shard-03, command line set name: order_rs-shard-03
 
 The application should now be avaibable on `localhost`. You can reach it by using curl:
 

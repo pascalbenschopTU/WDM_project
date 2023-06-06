@@ -14,10 +14,10 @@ operations_queue = asyncio.Queue()
 global_channel = None        
 
 # Define a list of connections to your Redis instances:
-connection_urls = ["redis://redis-node-5", 
-                   "redis://redis-node-1", 
-                   "redis://redis-node-2", "redis://redis-node-3", 
-                   "redis://redis-node-4", "redis://redis-node-0"
+connection_urls = ["redis://:a@my-release-redis-cluster-0", 
+                   "redis://:a@my-release-redis-cluster-1", 
+                   "redis://:a@my-release-redis-cluster-2", "redis::a@//my-release-redis-cluster-4", 
+                   "redis://:a@my-release-redis-cluster-6", "redis::a@//my-release-redis-cluster-5"
                    ]
 RABBIT_URI = "amqp://guest:guest@rabbitmq/"
 redis_global = None

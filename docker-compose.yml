@@ -138,10 +138,8 @@ services:
 
   stock-consumer:
     build: ./rabbitmq/consumers/stock
-    image: ghcr.io/leonkempen/wdm-stock-consumer:latest
+    image: stock-consumer
     command: python consumer.py
-    env_file:
-      - env/stock-postgresql.env
     depends_on:
       rabbitmq:
         condition: service_healthy
@@ -210,144 +208,23 @@ services:
       - 27124:27017
     restart: always
 
-    stock-consumer:
-    build: ./rabbitmq/consumers/stock
-    image: ghcr.io/leonkempen/wdm-stock-consumer:latest
-    command: python consumer.py
-    restart: always
-    env_file:
-      - env/stock_redis.env
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis-node-0:
-        condition: service_healthy
-      redis-node-1:
-        condition: service_healthy
-      redis-node-2:
-        condition: service_healthy
-      redis-node-3:
-        condition: service_healthy
-      redis-node-4:
-        condition: service_healthy
-      redis-node-5:
-        condition: service_healthy
-    deploy:
-      mode: replicated
-      replicas: 5
-    
-    redis-node-0:
-      image: docker.io/bitnami/redis-cluster:7.0
-      volumes:
-        - redis-cluster_data-0:/bitnami/redis/data
-      environment:
-        # - 'REDIS_PASSWORD=bitnami'
-        - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
-        - 'ALLOW_EMPTY_PASSWORD=yes'
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 1s
-        timeout: 3s
-        retries: 30
-
-    redis-node-1:
-      image: docker.io/bitnami/redis-cluster:7.0
-      volumes:
-        - redis-cluster_data-1:/bitnami/redis/data
-      environment:
-        # - 'REDIS_PASSWORD=bitnami'
-        - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
-        - 'ALLOW_EMPTY_PASSWORD=yes'
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 1s
-        timeout: 3s
-        retries: 30
-
-    redis-node-2:
-      image: docker.io/bitnami/redis-cluster:7.0
-      volumes:
-        - redis-cluster_data-2:/bitnami/redis/data
-      environment:
-        # - 'REDIS_PASSWORD=bitnami'
-        - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
-        - 'ALLOW_EMPTY_PASSWORD=yes'
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 1s
-        timeout: 3s
-        retries: 30
-
-    redis-node-3:
-      image: docker.io/bitnami/redis-cluster:7.0
-      volumes:
-        - redis-cluster_data-3:/bitnami/redis/data
-      environment:
-        # - 'REDIS_PASSWORD=bitnami'
-        - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
-        - 'ALLOW_EMPTY_PASSWORD=yes'
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 1s
-        timeout: 3s
-        retries: 30
-
-    redis-node-4:
-      image: docker.io/bitnami/redis-cluster:7.0
-      volumes:
-        - redis-cluster_data-4:/bitnami/redis/data
-      environment:
-        # - 'REDIS_PASSWORD=bitnami'
-        - 'ALLOW_EMPTY_PASSWORD=yes'
-        - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 1s
-        timeout: 3s
-        retries: 30
-
-    redis-node-5:
-      image: docker.io/bitnami/redis-cluster:7.0
-      volumes:
-        - redis-cluster_data-5:/bitnami/redis/data
-      # ports:
-      #   - "6379:6379"
-      depends_on:
-        - redis-node-0
-        - redis-node-1
-        - redis-node-2
-        - redis-node-3
-        - redis-node-4
-      environment:
-        # - 'REDIS_PASSWORD=bitnami'
-        # - 'REDISCLI_AUTH=bitnami'
-        - 'ALLOW_EMPTY_PASSWORD=yes'
-        - 'REDIS_CLUSTER_REPLICAS=1'
-        - 'REDIS_NODES=redis-node-0 redis-node-1 redis-node-2 redis-node-3 redis-node-4 redis-node-5'
-        - 'REDIS_CLUSTER_CREATOR=yes'
-      healthcheck:
-        test: ["CMD", "redis-cli", "ping"]
-        interval: 1s
-        timeout: 3s
-        retries: 30
-
 volumes:
   order_mongodb_data:
     driver: local
   payment_mongodb_data:
     driver: local
-  redis-cluster_data-0:
-    driver: local
-  redis-cluster_data-1:
-    driver: local
-  redis-cluster_data-2:
-    driver: local
-  redis-cluster_data-3:
-    driver: local
-  redis-cluster_data-4:
-    driver: local
-  redis-cluster_data-5:
-    driver: local
+  # redis-cluster_data-0:
+  #   driver: local
+  # redis-cluster_data-1:
+  #   driver: local
+  # redis-cluster_data-2:
+  #   driver: local
+  # redis-cluster_data-3:
+  #   driver: local
+  # redis-cluster_data-4:
+  #   driver: local
+  # redis-cluster_data-5:
+  #   driver: local
 
   mongodb_cluster_order_router01_db:
   mongodb_cluster_order_router01_config:

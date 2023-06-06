@@ -9,7 +9,7 @@ metadata:
     io.kompose.service: stock-consumer
   name: stock-consumer
 spec:
-  replicas: 1
+  replicas: 5
   selector:
     matchLabels:
       io.kompose.service: stock-consumer
@@ -55,7 +55,8 @@ spec:
                 configMapKeyRef:
                   key: POSTGRES_USER
                   name: env-stock-postgresql-env
-          image: ghcr.io/leonkempen/wdm-stock-consumer:latest
+          image: stock-consumer
+          imagePullPolicy: Never
           name: stock-consumer
           resources: {}
           volumeMounts:
