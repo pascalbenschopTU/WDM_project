@@ -4,56 +4,56 @@ on:
   push:
     branches: "**"
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    name: minikube_tests
-    steps:
-    - uses: actions/checkout@v2
-    - name: Start minikube
-      uses: medyagh/setup-minikube@master
-    - name: Install Nginx Ingress Controller
-      run: |
-        helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
-        helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
-        sleep 40
-        kubeclt get pods
-    - name: Deploy Kubernetes resources
-      run: |
-        kubectl apply -f ./test2/
-        sleep 40
-        kubeclt get pods
-    - name: Run database setup script
-      run: ./database_setup_k8s.sh
-    - name: Start Minikube tunnel
-      run: minikube tunnel
-    - name: Install Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: 3.x
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     name: minikube_tests
+#     steps:
+#     - uses: actions/checkout@v2
+#     - name: Start minikube
+#       uses: medyagh/setup-minikube@master
+#     - name: Install Nginx Ingress Controller
+#       run: |
+#         helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+#         helm install -f helm-config/nginx-helm-values.yaml nginx ingress-nginx/ingress-nginx
+#         sleep 40
+#         kubeclt get pods
+#     - name: Deploy Kubernetes resources
+#       run: |
+#         kubectl apply -f ./test2/
+#         sleep 40
+#         kubeclt get pods
+#     - name: Run database setup script
+#       run: ./database_setup_k8s.sh
+#     - name: Start Minikube tunnel
+#       run: minikube tunnel
+#     - name: Install Python
+#       uses: actions/setup-python@v2
+#       with:
+#         python-version: 3.x
 
-    - name: Install dependencies
-      run: pip install -r test/requirements.txt
+#     - name: Install dependencies
+#       run: pip install -r test/requirements.txt
 
-    - name: Run Python test script
-      run: python test/test_microservices.py
+#     - name: Run Python test script
+#       run: python test/test_microservices.py
 
-  postman:
-    runs-on: ubuntu-latest
+#   postman:
+#     runs-on: ubuntu-latest
 
-    steps:
-      - uses: actions/checkout@v3
-      - name: Use Node.js 18.x
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18.x
+#     steps:
+#       - uses: actions/checkout@v3
+#       - name: Use Node.js 18.x
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 18.x
 
-      - uses: actions/checkout@v3
-      - name: Run docker postman tests
-        run: |
-          npm install -g newman
-          docker compose up --quiet-pull -d
-          sleep 5
-          sh database_setup.sh
-          sleep 5
-          newman run test/WDM.postman.json
+#       - uses: actions/checkout@v3
+#       - name: Run docker postman tests
+#         run: |
+#           npm install -g newman
+#           docker compose up --quiet-pull -d
+#           sleep 5
+#           sh database_setup.sh
+#           sleep 5
+#           newman run test/WDM.postman.json

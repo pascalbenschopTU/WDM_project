@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: order
-          image: order:latest
+          image: ghcr.io/leonkempen/wdm-order:latest
           resources:
             limits:
               memory: "1Gi"
@@ -40,10 +40,6 @@ spec:
           ports:
             - containerPort: 5000
           env:
-            - name: USER_SERVICE_URL
-              value: "user-service"
-            - name: STOCK_SERVICE_URL
-              value: "stock-service"
             - name: REDIS_HOST
               value: redis-master
             - name: REDIS_PORT
@@ -52,9 +48,13 @@ spec:
               value: "redis"
             - name: REDIS_DB
               value: "0"
-            - name: MONGODB_USERNAME
-              value: "user"
+            - name: MONGODB_DATABASE
+              value: "order_mongodb"
             - name: MONGODB_PASSWORD
               value: "password"
             - name: MONGODB_HOSTNAME
-              value: "mongodb"
+              value: "order-router01"
+            - name: MONGODB_HOSTNAME_2
+              value: "order-router02"
+            - name: "GATEWAY_URL"
+              value: "http://gateway:80"
