@@ -76,10 +76,10 @@ def add_credit(user_id: str, amount: int):
 
 @app.post('/pay/<user_id>/<order_id>/<amount>')
 def remove_credit(user_id: str, order_id: str, amount: int):
-    # check_idempotency_key_result = check_idempotency_key(
-    #     request.headers.get('Idempotency-Key'))
-    # if check_idempotency_key_result is not None:
-    #     return check_idempotency_key_result
+    check_idempotency_key_result = check_idempotency_key(
+        request.headers.get('Idempotency-Key'))
+    if check_idempotency_key_result is not None:
+        return check_idempotency_key_result
 
     amount = int(amount)
 
@@ -107,10 +107,10 @@ def remove_credit(user_id: str, order_id: str, amount: int):
 
 @app.post('/cancel/<user_id>/<order_id>')
 def cancel_payment(user_id: str, order_id: str):
-    # check_idempotency_key_result = check_idempotency_key(
-    #     request.headers.get('Idempotency-Key'))
-    # if check_idempotency_key_result is not None:
-    #     return check_idempotency_key_result
+    check_idempotency_key_result = check_idempotency_key(
+        request.headers.get('Idempotency-Key'))
+    if check_idempotency_key_result is not None:
+        return check_idempotency_key_result
 
     order = paid_order_collection.find_one({'order_id': order_id})
     if order is None:
