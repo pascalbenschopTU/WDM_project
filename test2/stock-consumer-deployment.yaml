@@ -62,8 +62,7 @@ spec:
                   name: env-stock-postgresql-env
             - name: BASIC_REDIS_URL
               value: redis://my-release-redis-cluster-
-          image: stock-consumer-newest
-          imagePullPolicy: Never
+          image: ghcr.io/nobert1/stock-consumer:latest
           name: stock-consumer
           resources: {}
           volumeMounts:

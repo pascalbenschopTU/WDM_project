@@ -27,8 +27,7 @@ spec:
     spec:
       containers:
         - name: stock
-          image: stock-app
-          imagePullPolicy: Never
+          image: ghcr.io/nobert1/stock-app:latest
           resources:
             limits:
               memory: "1Gi"

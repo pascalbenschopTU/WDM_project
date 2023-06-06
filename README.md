@@ -55,12 +55,6 @@ helm install my-release \
 Check they are running: kubectl get pods
 
 # build images with minikube
-Go to stock and rabbitmq/consumers/stock
-docker build -t <image-name> . in stock úse stock-app, and in rabbitmq/consumers/stock use stock-consumer
-Afterwards run minikube image load <image-name> in both of them. 
-
-Then you don't have to host them. If you want to host them change the paths in stock-app.yaml and stock-consumer-deployment.yaml
-
 Apply the k8s scripts
 ```
 kubectl apply -f .\test2\ (will be renamed)
