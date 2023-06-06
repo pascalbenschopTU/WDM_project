@@ -33,7 +33,7 @@ First run `docker-compose up --build` to get all the web services running, then 
 Run the following commands to set up a local cluster:
 
 ```
-minikube start
+minikube start --memory 6500 --cpus 6
 ```
 
 Install ingress via helm

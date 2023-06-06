@@ -8,6 +8,11 @@ db.adminCommand({
   key: { order_id: "hashed" },
 });
 
+db.adminCommand({
+  shardCollection: "payment_mongodb.idempotency_keys",
+  key: { idempotency_key: "hashed" },
+});
+
 db.createUser({
   user: "user",
   pwd: "password",
