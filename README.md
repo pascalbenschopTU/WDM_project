@@ -30,6 +30,14 @@ First run `docker-compose up --build` to get all the web services running, then 
 - install minikube
 - add helm to path
 
+Run the following bash script to set up a local cluster:
+
+```
+.\deploy-kubernetes
+```
+
+OR:
+
 Run the following commands to set up a local cluster:
 
 ```
@@ -46,7 +54,7 @@ If helm cannot find ingress-nginx: `helm repo add ingress-nginx https://kubernet
 
 Apply the k8s scripts
 ```
-kubectl apply -f .\test2\ (will be renamed)
+kubectl apply -f .\k8s\
 ```
 Again, wait for the containers to be ready, repeat `kubectl get pods` until all ready 1/1.`
 
