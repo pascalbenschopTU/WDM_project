@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   annotations:
-    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o ./test2/
+    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o .\test2\
     kompose.version: 1.28.0 (c4137012e)
   creationTimestamp: null
   labels:
@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       annotations:
-        kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o ./test2/
+        kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o .\test2\
         kompose.version: 1.28.0 (c4137012e)
       creationTimestamp: null
       labels:
@@ -31,7 +31,7 @@ spec:
             - --port
             - "27017"
             - --configdb
-            - order_rs-config-server/order-configserver01:28119
+            - order_rs-config-server/order-configserver01:28119,order-configserver02:28120,order-configserver03:28121
             - --bind_ip_all
           image: mongo:6.0.1
           name: order-router-01

@@ -1,14 +1,19 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: stock-db
+  annotations:
+    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o .\test2\
+    kompose.version: 1.28.0 (c4137012e)
+  creationTimestamp: null
   labels:
-    app: stock-db
-    tier: database
+    io.kompose.service: stock-db
+  name: stock-db
 spec:
   ports:
-    - port: 5432
+    - name: "5432"
+      port: 5432
       targetPort: 5432
   selector:
-    app: stock-db
-    tier: database
+    io.kompose.service: stock-db
+status:
+  loadBalancer: {}

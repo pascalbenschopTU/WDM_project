@@ -3,8 +3,7 @@ kind: PersistentVolumeClaim
 metadata:
   creationTimestamp: null
   labels:
-    app: stock-db-claim0
-    tier: database
+    io.kompose.service: stock-db-claim0
   name: stock-db-claim0
 spec:
   accessModes:

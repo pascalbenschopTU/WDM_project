@@ -41,7 +41,7 @@ services:
   order-router01:
     image: mongo:6.0.1
     container_name: order_router-01
-    command: mongos --port 27017 --configdb order_rs-config-server/order-configserver01:28119 --bind_ip_all #,order-configserver02:28120,order-configserver03:28121 --bind_ip_all
+    command: mongos --port 27017 --configdb order_rs-config-server/order-configserver01:28119,order-configserver02:28120,order-configserver03:28121 --bind_ip_all
     ports:
       - 28017:27017
     restart: always
@@ -49,18 +49,18 @@ services:
       - mongodb_cluster_order_router01_db:/data/db
       - mongodb_cluster_order_router01_config:/data/configdb
 
-  # order-router02:
-  #   image: mongo:6.0.1
-  #   container_name: order_router-02
-  #   command: mongos --port 27017 --configdb order_rs-config-server/order-configserver01:28119,order-configserver02:28120,order-configserver03:28121
-  #   volumes:
-  #     - mongodb_cluster_order_router02_db:/data/db
-  #     - mongodb_cluster_order_router02_config:/data/configdb
-  #   ports:
-  #     - 28118:27017
-  #   restart: always
-  #   links:
-  #     - order-router01
+  order-router02:
+    image: mongo:6.0.1
+    container_name: order_router-02
+    command: mongos --port 27017 --configdb order_rs-config-server/order-configserver01:28119,order-configserver02:28120,order-configserver03:28121
+    volumes:
+      - mongodb_cluster_order_router02_db:/data/db
+      - mongodb_cluster_order_router02_config:/data/configdb
+    ports:
+      - 28118:27017
+    restart: always
+    links:
+      - order-router01
 
   ## Config Servers
   order-configserver01:
@@ -75,34 +75,34 @@ services:
     restart: always
     links:
       - order-shard01-a
-      # - order-shard02-a
-      # - order-shard03-a
+      - order-shard02-a
+      - order-shard03-a
 
-  # order-configserver02:
-  #   image: mongo:6.0.1
-  #   container_name: mongo-order-config-02
-  #   command: mongod --port 27017 --configsvr  --replSet order_rs-config-server
-  #   volumes:
-  #     - mongodb_cluster_order_configserver02_db:/data/db
-  #     - mongodb_cluster_order_configserver02_config:/data/configdb
-  #   ports:
-  #     - 28120:27017
-  #   restart: always
-  #   links:
-  #     - order-configserver01
+  order-configserver02:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-02
+    command: mongod --port 27017 --configsvr  --replSet order_rs-config-server
+    volumes:
+      - mongodb_cluster_order_configserver02_db:/data/db
+      - mongodb_cluster_order_configserver02_config:/data/configdb
+    ports:
+      - 28120:27017
+    restart: always
+    links:
+      - order-configserver01
 
-  # order-configserver03:
-  #   image: mongo:6.0.1
-  #   container_name: mongo-order-config-03
-  #   command: mongod --port 27017 --configsvr  --replSet order_rs-config-server
-  #   volumes:
-  #     - mongodb_cluster_order_configserver03_db:/data/db
-  #     - mongodb_cluster_order_configserver03_config:/data/configdb
-  #   ports:
-  #     - 28121:27017
-  #   restart: always
-  #   links:
-  #     - order=configserver02
+  order-configserver03:
+    image: mongo:6.0.1
+    container_name: mongo-order-config-03
+    command: mongod --port 27017 --configsvr  --replSet order_rs-config-server
+    volumes:
+      - mongodb_cluster_order_configserver03_db:/data/db
+      - mongodb_cluster_order_configserver03_config:/data/configdb
+    ports:
+      - 28121:27017
+    restart: always
+    links:
+      - order=configserver02
 
   ## order_shards
   ## order_shards 01
@@ -143,80 +143,80 @@ services:
       - 28124:27017
     restart: always
 
-  ## order_shards 02
-  # order-shard02-a:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-02-node-a
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
-  #   volumes:
-  #     - mongodb_cluster_order_shard02_a_db:/data/db
-  #     - mongodb_cluster_order_shard02_a_config:/data/configdb
-  #   ports:
-  #     - 28125:27017
-  #   restart: always
-  #   links:
-  #     - order-shard02-b
-  #     - order-shard02-c
+  # order_shards 02
+  order-shard02-a:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - mongodb_cluster_order_shard02_a_db:/data/db
+      - mongodb_cluster_order_shard02_a_config:/data/configdb
+    ports:
+      - 28125:27017
+    restart: always
+    links:
+      - order-shard02-b
+      - order-shard02-c
 
-  # order-shard02-b:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-02-node-b
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
-  #   volumes:
-  #     - mongodb_cluster_order_shard02_b_db:/data/db
-  #     - mongodb_cluster_order_shard02_b_config:/data/configdb
-  #   ports:
-  #     - 28126:27017
-  #   restart: always
+  order-shard02-b:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - mongodb_cluster_order_shard02_b_db:/data/db
+      - mongodb_cluster_order_shard02_b_config:/data/configdb
+    ports:
+      - 28126:27017
+    restart: always
 
-  # order-shard02-c:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-02-node-c
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
-  #   volumes:
-  #     - ./order/scripts:/order/scripts
-  #     - mongodb_cluster_order_shard02_c_db:/data/db
-  #     - mongodb_cluster_order_shard02_c_config:/data/configdb
-  #   ports:
-  #     - 28127:27017
-  #   restart: always
+  order-shard02-c:
+    image: mongo:6.0.1
+    container_name: order_shard-02-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-02
+    volumes:
+      - ./order/scripts:/order/scripts
+      - mongodb_cluster_order_shard02_c_db:/data/db
+      - mongodb_cluster_order_shard02_c_config:/data/configdb
+    ports:
+      - 28127:27017
+    restart: always
 
-  ## order_shards 03
-  # order-shard03-a:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-03-node-a
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
-  #   volumes:
-  #     - mongodb_cluster_order_shard03_a_db:/data/db
-  #     - mongodb_cluster_order_shard03_a_config:/data/configdb
-  #   ports:
-  #     - 28128:27017
-  #   restart: always
-  #   links:
-  #     - order-shard03-b
-  #     - order-shard03-c
+  # order_shards 03
+  order-shard03-a:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-a
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - mongodb_cluster_order_shard03_a_db:/data/db
+      - mongodb_cluster_order_shard03_a_config:/data/configdb
+    ports:
+      - 28128:27017
+    restart: always
+    links:
+      - order-shard03-b
+      - order-shard03-c
 
-  # order-shard03-b:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-03-node-b
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
-  #   volumes:
-  #     - mongodb_cluster_order_shard03_b_db:/data/db
-  #     - mongodb_cluster_order_shard03_b_config:/data/configdb
-  #   ports:
-  #     - 28129:27017
-  #   restart: always
+  order-shard03-b:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-b
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - mongodb_cluster_order_shard03_b_db:/data/db
+      - mongodb_cluster_order_shard03_b_config:/data/configdb
+    ports:
+      - 28129:27017
+    restart: always
 
-  # order-shard03-c:
-  #   image: mongo:6.0.1
-  #   container_name: order_shard-03-node-c
-  #   command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
-  #   volumes:
-  #     - mongodb_cluster_order_shard03_c_db:/data/db
-  #     - mongodb_cluster_order_shard03_c_config:/data/configdb
-  #   ports:
-  #     - 28130:27017
-  #   restart: always
+  order-shard03-c:
+    image: mongo:6.0.1
+    container_name: order_shard-03-node-c
+    command: mongod --port 27017 --shardsvr --replSet rs-order_shard-03
+    volumes:
+      - mongodb_cluster_order_shard03_c_db:/data/db
+      - mongodb_cluster_order_shard03_c_config:/data/configdb
+    ports:
+      - 28130:27017
+    restart: always
 
   # stock-service:
   #   build: ./stock
@@ -301,18 +301,18 @@ services:
       - payment_mongodb_cluster_router01_db:/data/db
       - payment_mongodb_cluster_router01_config:/data/configdb
 
-  # payment-router02:
-  #   image: mongo:6.0.1
-  #   container_name: payment_router-02
-  #   command: mongos --port 27017 --configdb payment_rs-config-server/payment-configsvr01:27119,payment-configsvr02:27120,payment-configsvr03:27121 --bind_ip_all
-  #   volumes:
-  #     - payment_mongodb_cluster_router02_db:/data/db
-  #     - payment_mongodb_cluster_router02_config:/data/configdb
-  #   ports:
-  #     - 27118:27017
-  #   restart: always
-  #   links:
-  #     - payment-router01
+  payment-router02:
+    image: mongo:6.0.1
+    container_name: payment_router-02
+    command: mongos --port 27017 --configdb payment_rs-config-server/payment-configsvr01:27119,payment-configsvr02:27120,payment-configsvr03:27121 --bind_ip_all
+    volumes:
+      - payment_mongodb_cluster_router02_db:/data/db
+      - payment_mongodb_cluster_router02_config:/data/configdb
+    ports:
+      - 27118:27017
+    restart: always
+    links:
+      - payment-router01
 
   ## Payment config Servers
   payment-configsvr01:
@@ -327,35 +327,35 @@ services:
     restart: always
     links:
       - payment-shard01-a
-      # - payment-shard02-a
-      # - payment-shard03-a
+      - payment-shard02-a
+      - payment-shard03-a
 
-  # payment-configsvr02:
-  #   image: mongo:6.0.1
-  #   container_name: payment_mongo-config-02
-  #   command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
-  #   volumes:
-  #     - payment_mongodb_cluster_configsvr02_db:/data/db
-  #     - payment_mongodb_cluster_configsvr02_config:/data/configdb
-  #   ports:
-  #     - 27120:27017
-  #   restart: always
-  #   links:
-  #     - payment-configsvr01
+  payment-configsvr02:
+    image: mongo:6.0.1
+    container_name: payment_mongo-config-02
+    command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
+    volumes:
+      - payment_mongodb_cluster_configsvr02_db:/data/db
+      - payment_mongodb_cluster_configsvr02_config:/data/configdb
+    ports:
+      - 27120:27017
+    restart: always
+    links:
+      - payment-configsvr01
 
-  # payment-configsvr03:
-  #   image: mongo:6.0.1
-  #   container_name: payment_mongo-config-03
-  #   command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
-  #   volumes:
-  #     - .\payment\scripts:/payment\scripts
-  #     - payment_mongodb_cluster_configsvr03_db:/data/db
-  #     - payment_mongodb_cluster_configsvr03_config:/data/configdb
-  #   ports:
-  #     - 27121:27017
-  #   restart: always
-  #   links:
-  #     - payment-configsvr02
+  payment-configsvr03:
+    image: mongo:6.0.1
+    container_name: payment_mongo-config-03
+    command: mongod --port 27017 --configsvr --replSet payment_rs-config-server
+    volumes:
+      - .\payment\scripts:/payment\scripts
+      - payment_mongodb_cluster_configsvr03_db:/data/db
+      - payment_mongodb_cluster_configsvr03_config:/data/configdb
+    ports:
+      - 27121:27017
+    restart: always
+    links:
+      - payment-configsvr02
 
   ## Payment shards
 
@@ -395,6 +395,80 @@ services:
     ports:
       - 27124:27017
     restart: always
+  ## Payment shard 02
+  
+  payment-shard02-a:
+    image: mongo:6.0.1
+    container_name: payment_shard-02-node-a
+    command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-02
+    volumes:
+      - payment_mongodb_cluster_shard02_a_db:/data/db
+      - payment_mongodb_cluster_shard02_a_config:/data/configdb
+    ports:
+      - 27125:27017
+    restart: always
+    links:
+      - payment-shard02-b
+      - payment-shard02-c
+
+  payment-shard02-b:
+    image: mongo:6.0.1
+    container_name: payment_shard-02-node-b
+    command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-02
+    volumes:
+      - payment_mongodb_cluster_shard02_b_db:/data/db
+      - payment_mongodb_cluster_shard02_b_config:/data/configdb
+    ports:
+      - 27126:27017
+    restart: always
+
+  payment-shard02-c:
+    image: mongo:6.0.1
+    container_name: payment_shard-02-node-c
+    command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-02
+    volumes:
+      - payment_mongodb_cluster_shard02_c_db:/data/db
+      - payment_mongodb_cluster_shard02_c_config:/data/configdb
+    ports:
+      - 27127:27017
+    restart: always
+
+  ## Payment shard 03
+  payment-shard03-a:
+    image: mongo:6.0.1
+    container_name: payment_shard-03-node-a
+    command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-03
+    volumes:
+      - payment_mongodb_cluster_shard03_a_db:/data/db
+      - payment_mongodb_cluster_shard03_a_config:/data/configdb
+    ports:
+      - 27128:27017
+    restart: always
+    links:
+      - payment-shard03-b
+      - payment-shard03-c
+
+  payment-shard03-b:
+    image: mongo:6.0.1
+    container_name: payment_shard-03-node-b
+    command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-03
+    volumes:
+      - payment_mongodb_cluster_shard03_b_db:/data/db
+      - payment_mongodb_cluster_shard03_b_config:/data/configdb
+    ports:
+      - 27129:27017
+    restart: always
+
+  payment-shard03-c:
+    image: mongo:6.0.1
+    container_name: payment_shard-03-node-c
+    command: mongod --port 27017 --shardsvr --replSet payment_rs-shard-03
+    volumes:
+      - payment_mongodb_cluster_shard03_c_db:/data/db
+      - payment_mongodb_cluster_shard03_c_config:/data/configdb
+    ports:
+      - 27130:27017
+    restart: always
 
 volumes:
   order_mongodb_data:
@@ -407,17 +481,17 @@ volumes:
   mongodb_cluster_order_router01_db:
   mongodb_cluster_order_router01_config:
 
-  # mongodb_cluster_order_router02_db:
-  # mongodb_cluster_order_router02_config:
+  mongodb_cluster_order_router02_db:
+  mongodb_cluster_order_router02_config:
 
   mongodb_cluster_order_configserver01_db:
   mongodb_cluster_order_configserver01_config:
 
-  # mongodb_cluster_order_configserver02_db:
-  # mongodb_cluster_order_configserver02_config:
+  mongodb_cluster_order_configserver02_db:
+  mongodb_cluster_order_configserver02_config:
 
-  # mongodb_cluster_order_configserver03_db:
-  # mongodb_cluster_order_configserver03_config:
+  mongodb_cluster_order_configserver03_db:
+  mongodb_cluster_order_configserver03_config:
 
   mongodb_cluster_order_shard01_a_db:
   mongodb_cluster_order_shard01_a_config:
@@ -428,38 +502,38 @@ volumes:
   mongodb_cluster_order_shard01_c_db:
   mongodb_cluster_order_shard01_c_config:
 
-  # mongodb_cluster_order_shard02_a_db:
-  # mongodb_cluster_order_shard02_a_config:
+  mongodb_cluster_order_shard02_a_db:
+  mongodb_cluster_order_shard02_a_config:
 
-  # mongodb_cluster_order_shard02_b_db:
-  # mongodb_cluster_order_shard02_b_config:
+  mongodb_cluster_order_shard02_b_db:
+  mongodb_cluster_order_shard02_b_config:
 
-  # mongodb_cluster_order_shard02_c_db:
-  # mongodb_cluster_order_shard02_c_config:
+  mongodb_cluster_order_shard02_c_db:
+  mongodb_cluster_order_shard02_c_config:
 
-  # mongodb_cluster_order_shard03_a_db:
-  # mongodb_cluster_order_shard03_a_config:
+  mongodb_cluster_order_shard03_a_db:
+  mongodb_cluster_order_shard03_a_config:
 
-  # mongodb_cluster_order_shard03_b_db:
-  # mongodb_cluster_order_shard03_b_config:
+  mongodb_cluster_order_shard03_b_db:
+  mongodb_cluster_order_shard03_b_config:
 
-  # mongodb_cluster_order_shard03_c_db:
-  # mongodb_cluster_order_shard03_c_config:
+  mongodb_cluster_order_shard03_c_db:
+  mongodb_cluster_order_shard03_c_config:
 
   payment_mongodb_cluster_router01_db:
   payment_mongodb_cluster_router01_config:
 
-  # payment_mongodb_cluster_router02_db:
-  # payment_mongodb_cluster_router02_config:
+  payment_mongodb_cluster_router02_db:
+  payment_mongodb_cluster_router02_config:
 
   payment_mongodb_cluster_configsvr01_db:
   payment_mongodb_cluster_configsvr01_config:
 
-  # payment_mongodb_cluster_configsvr02_db:
-  # payment_mongodb_cluster_configsvr02_config:
+  payment_mongodb_cluster_configsvr02_db:
+  payment_mongodb_cluster_configsvr02_config:
 
-  # payment_mongodb_cluster_configsvr03_db:
-  # payment_mongodb_cluster_configsvr03_config:
+  payment_mongodb_cluster_configsvr03_db:
+  payment_mongodb_cluster_configsvr03_config:
 
   payment_mongodb_cluster_shard01_a_db:
   payment_mongodb_cluster_shard01_a_config:
@@ -470,20 +544,20 @@ volumes:
   payment_mongodb_cluster_shard01_c_db:
   payment_mongodb_cluster_shard01_c_config:
 
-  # payment_mongodb_cluster_shard02_a_db:
-  # payment_mongodb_cluster_shard02_a_config:
+  payment_mongodb_cluster_shard02_a_db:
+  payment_mongodb_cluster_shard02_a_config:
 
-  # payment_mongodb_cluster_shard02_b_db:
-  # payment_mongodb_cluster_shard02_b_config:
+  payment_mongodb_cluster_shard02_b_db:
+  payment_mongodb_cluster_shard02_b_config:
 
-  # payment_mongodb_cluster_shard02_c_db:
-  # payment_mongodb_cluster_shard02_c_config:
+  payment_mongodb_cluster_shard02_c_db:
+  payment_mongodb_cluster_shard02_c_config:
 
-  # payment_mongodb_cluster_shard03_a_db:
-  # payment_mongodb_cluster_shard03_a_config:
+  payment_mongodb_cluster_shard03_a_db:
+  payment_mongodb_cluster_shard03_a_config:
 
-  # payment_mongodb_cluster_shard03_b_db:
-  # payment_mongodb_cluster_shard03_b_config:
+  payment_mongodb_cluster_shard03_b_db:
+  payment_mongodb_cluster_shard03_b_config:
 
-  # payment_mongodb_cluster_shard03_c_db:
-  # payment_mongodb_cluster_shard03_c_config:
+  payment_mongodb_cluster_shard03_c_db:
+  payment_mongodb_cluster_shard03_c_config:
