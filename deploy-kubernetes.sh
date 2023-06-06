@@ -18,7 +18,7 @@ sleep 20
 
 ECHO "Applying k8s ymls...."
 
-$(kubectl apply -f .\\test2\\)
+$(kubectl apply -f .\\k8s\\)
 
 while [ ! -z "$(kubectl get pod -o=name --field-selector status.phase!=Running)" ]
 do

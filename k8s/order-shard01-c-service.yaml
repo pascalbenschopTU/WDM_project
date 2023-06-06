@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    kompose.cmd: C:\Projects\WDM\kompose-windows-amd64.exe convert -o .\test2\
+    kompose.version: 1.28.0 (c4137012e)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: order-shard01-c
+  name: order-shard01-c
+spec:
+  ports:
+    - name: "28124"
+      port: 28124
+      targetPort: 27017
+  selector:
+    io.kompose.service: order-shard01-c
+status:
+  loadBalancer: {}
