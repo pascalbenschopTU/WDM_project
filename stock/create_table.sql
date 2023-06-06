@@ -6,5 +6,5 @@ CREATE TABLE stock (
 );
 
 CREATE TABLE idempotency_key (
-    key TEXT NOT NULL PRIMARY KEY,
+    idempotency_key TEXT NOT NULL PRIMARY KEY,
 );
