@@ -136,15 +136,9 @@ class TestMicroservices(unittest.TestCase):
 
         credit: int = tu.find_user(user_id)['credit']
         self.assertEqual(credit, 15)
-<<<<<<< HEAD
 
-        time.sleep(1)
-
-=======
-        
         # time.sleep(1)
-        
->>>>>>> be9f5020f7a6fa68d514c3379686cd9006a278ae
+
         stock: int = tu.find_item(item_id1)['stock']
         self.assertEqual(stock, 15)
 
