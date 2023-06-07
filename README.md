@@ -49,7 +49,7 @@ OR:
 Run the following commands to set up a local cluster:
 
 ```
-minikube start --memory 6500 --cpus 6
+minikube start
 ```
 
 Install ingress via helm

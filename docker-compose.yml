@@ -396,7 +396,7 @@ services:
       - 27124:27017
     restart: always
   ## Payment shard 02
-
+  
   payment-shard02-a:
     image: mongo:6.0.1
     container_name: payment_shard-02-node-a

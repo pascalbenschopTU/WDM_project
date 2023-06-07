@@ -3,7 +3,6 @@ import unittest
 import utils as tu
 import time
 
-
 class TestMicroservices(unittest.TestCase):
 
     def test_stock(self):
@@ -136,9 +135,9 @@ class TestMicroservices(unittest.TestCase):
 
         credit: int = tu.find_user(user_id)['credit']
         self.assertEqual(credit, 15)
-
+        
         # time.sleep(1)
-
+        
         stock: int = tu.find_item(item_id1)['stock']
         self.assertEqual(stock, 15)
 
