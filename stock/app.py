@@ -1,3 +1,5 @@
+import sys
+import psycopg2
 import os
 import atexit
 
@@ -58,15 +60,16 @@ def update_stock(item_id: str, amount: int, subtract: bool = False):
     amount = int(amount)
     if amount < 0:
         return 'Amount must be positive', 400
+
+    if subtract:
+        update_stock = "UPDATE stock SET stock = stock - %s WHERE id = %s AND stock >= %s;"
+        cursor.execute(update_stock, (amount, item_id, amount))
+        if (cursor.rowcount != 1):
+            return 'Not enough stock', 400
     
-    get_stock = "SELECT stock FROM stock WHERE id = %s;"
-    cursor.execute(get_stock, (item_id,))
-    stock = int(cursor.fetchone()[0])
-    new_stock = stock - amount if subtract else stock + amount
-    if new_stock < 0:
-        return 'Not enough stock', 400
-    update_stock = "UPDATE stock SET stock = %s WHERE id = %s;"
-    cursor.execute(update_stock, (new_stock, item_id))
+    else:
+        update_stock = "UPDATE stock SET stock = stock + %s WHERE id = %s;"
+        cursor.execute(update_stock, (amount, item_id))
     return "Success", 200
     
 
