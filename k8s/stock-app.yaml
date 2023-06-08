@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: stock
-          image: ghcr.io/leonkempen/wdm-stock:latest
+          image: ghcr.io/cashil/stock:latest
           resources:
             limits:
               memory: "300Mi"
@@ -45,7 +45,7 @@ spec:
             - name: REDIS_HOST
               value: redis-master
             - name: REDIS_PORT
-              value: '6379'
+              value: "6379"
             - name: REDIS_PASSWORD
               value: "redis"
             - name: REDIS_DB
@@ -58,5 +58,5 @@ spec:
               value: postgres
             - name: POSTGRES_PORT
               value: "5432"
-            - name: POSTGRES_USER 
+            - name: POSTGRES_USER
               value: postgres
