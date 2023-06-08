@@ -12,6 +12,8 @@ db = psycopg2.connect(
         'POSTGRES_PASSWORD'], host=os.environ['POSTGRES_HOST'], port=os.environ['POSTGRES_PORT']
 )
 
+db.autocommit = True
+
 cursor = db.cursor()
 
 
@@ -56,8 +58,8 @@ def find_item(item_id: str):
     get_item = "SELECT * FROM stock WHERE id = %s;"
     cursor.execute(get_item, (item_id,))
     item = cursor.fetchone()
-    if None in item:
-        return None, 404
+    if item is None:
+        return {'Error': 'Item not found'}, 404
     item = {'item_id': int(item[0]), 'price': int(
         item[1]), 'stock': int(item[2])}
     return item, 200
@@ -92,7 +94,7 @@ def update_stock(item_id: str, amount: int, subtract: bool = False):
         cursor.execute(update_stock, (amount, item_id, amount))
         if (cursor.rowcount != 1):
             return 'Not enough stock', 400
-    
+
     else:
         update_stock = "UPDATE stock SET stock = stock + %s WHERE id = %s;"
         cursor.execute(update_stock, (amount, item_id))
